@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Vault | RoleAxis{% endblock %}
+{% block page_eyebrow %}RoleAxis Vault{% endblock %}
+{% block page_title %}Vault Workspace{% endblock %}
+{% block content %}
+<section class="platform-hero">
+  <div>
+    <span class="eyebrow">Central professional record</span>
+    <h2>Your long-term career and evidence memory layer</h2>
+    <p>RoleAxis Vault will power reusable professional profiles, credentials, achievements, and documents across every workspace.</p>
+  </div>
+</section>
+
+<section class="workspace-grid compact-grid">
+  {% for module in modules %}
+  <article class="workspace-card">
+    <span class="pill">Planned</span>
+    <h3>{{ module }}</h3>
+    <p>Structured storage, search, and reuse across Evidence and Career workflows.</p>
+  </article>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -6,7 +6,7 @@
   <span class="eyebrow">{{ case.case_type }} workspace</span>
   <h2>{{ case.title }}</h2>
   {% if error %}<div class="alert">{{ error }}</div>{% endif %}
-  <form method="post" action="/cases/{{ case.id }}/upload" enctype="multipart/form-data" class="stacked-form">
+  <form method="post" action="/evidence/cases/{{ case.id }}/upload" enctype="multipart/form-data" class="stacked-form">
     <label>
       Evidence files
       <input name="files" type="file" multiple required>
@@ -36,7 +36,7 @@
     </label>
     <div class="button-row">
       <button class="button primary" type="submit">Upload and Catalog</button>
-      <a class="button secondary" href="/cases/{{ case.id }}">Back to Case</a>
+      <a class="button secondary" href="/evidence/cases/{{ case.id }}">Back to Case</a>
     </div>
   </form>
 </section>

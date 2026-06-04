@@ -450,6 +450,62 @@ textarea {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.platform-hero {
+  display: grid;
+  align-items: center;
+  min-height: 230px;
+  margin-bottom: 22px;
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(5, 6, 8, 0.92), rgba(5, 6, 8, 0.68)),
+    url("/static/img/roleaxis-hero.png") center / cover no-repeat;
+  box-shadow: var(--shadow);
+}
+
+.platform-hero h2 {
+  width: min(820px, 100%);
+  margin: 8px 0 10px;
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 1.02;
+}
+
+.platform-hero p {
+  width: min(660px, 100%);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.workspace-grid.compact-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.workspace-card {
+  min-height: 210px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.048), rgba(255, 255, 255, 0.018));
+  box-shadow: var(--shadow);
+}
+
+.workspace-card h3 {
+  margin: 18px 0 10px;
+  font-size: 24px;
+}
+
+.workspace-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .case-card,
 .action-tile {
   padding: 20px;
@@ -753,6 +809,8 @@ code {
 
   .metric-grid,
   .case-grid,
+  .workspace-grid,
+  .workspace-grid.compact-grid,
   .action-grid,
   .settings-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -778,6 +836,8 @@ code {
   .landing-band,
   .metric-grid,
   .case-grid,
+  .workspace-grid,
+  .workspace-grid.compact-grid,
   .action-grid,
   .insight-grid,
   .settings-grid {

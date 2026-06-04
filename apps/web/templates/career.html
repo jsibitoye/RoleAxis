@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Career | RoleAxis{% endblock %}
+{% block page_eyebrow %}RoleAxis Career{% endblock %}
+{% block page_title %}Career Workspace{% endblock %}
+{% block content %}
+<section class="platform-hero">
+  <div>
+    <span class="eyebrow">Career intelligence suite</span>
+    <h2>Interview, presentation, meeting, job-search, and resume readiness</h2>
+    <p>RoleAxis Career is the execution layer for high-stakes professional moments.</p>
+  </div>
+</section>
+
+<section class="workspace-grid">
+  {% for module in modules %}
+  <a class="workspace-card" href="{{ module.href }}">
+    <span class="pill">{{ module.status }}</span>
+    <h3>{{ module.name }}</h3>
+    <p>{{ module.description }}</p>
+  </a>
+  {% endfor %}
+</section>
+{% endblock %}
+

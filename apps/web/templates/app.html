@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}App Launcher | RoleAxis{% endblock %}
+{% block page_eyebrow %}RoleAxis platform{% endblock %}
+{% block page_title %}App Launcher{% endblock %}
+{% block content %}
+<section class="platform-hero">
+  <div>
+    <span class="eyebrow">Welcome back</span>
+    <h2>{{ current_user.full_name }}</h2>
+    <p>Choose the workspace for the professional outcome you are building today.</p>
+  </div>
+</section>
+
+<section class="workspace-grid">
+  {% for workspace_item in workspaces %}
+  <a class="workspace-card" href="{{ workspace_item.href }}">
+    <span class="pill">{{ workspace_item.status }}</span>
+    <h3>RoleAxis {{ workspace_item.name }}</h3>
+    <p>{{ workspace_item.description }}</p>
+  </a>
+  {% endfor %}
+</section>
+{% endblock %}
+

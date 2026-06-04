@@ -8,8 +8,8 @@
     <h2>{{ case.title }}</h2>
   </div>
   <div class="button-row">
-    <a class="button secondary" href="/cases/{{ case.id }}/upload">Upload</a>
-    <a class="button primary" href="/cases/{{ case.id }}/export">Export</a>
+    <a class="button secondary" href="/evidence/cases/{{ case.id }}/upload">Upload</a>
+    <a class="button primary" href="/evidence/cases/{{ case.id }}/export">Export</a>
   </div>
 </section>
 
@@ -35,7 +35,7 @@
           <small>{{ item.original_filename or "Candidate without attached file" }}</small>
           <details class="row-editor">
             <summary>Edit</summary>
-            <form method="post" action="/cases/{{ case.id }}/evidence/{{ item.id }}/update">
+            <form method="post" action="/evidence/cases/{{ case.id }}/evidence/{{ item.id }}/update">
               <input name="title" value="{{ item.title }}" aria-label="Title">
               <select name="category" aria-label="Category">
                 {% for category in categories %}
@@ -66,7 +66,7 @@
 <div class="empty-state">
   <h2>No evidence items yet</h2>
   <p>Upload files or import candidates from the existing organizer and crawler services.</p>
-  <a class="button primary" href="/cases/{{ case.id }}/upload">Upload Evidence</a>
+  <a class="button primary" href="/evidence/cases/{{ case.id }}/upload">Upload Evidence</a>
 </div>
 {% endif %}
 {% endblock %}

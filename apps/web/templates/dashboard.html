@@ -26,7 +26,7 @@
     <span class="eyebrow">Active matters</span>
     <h2>Recent Cases</h2>
   </div>
-  <a class="button secondary" href="/cases">View all</a>
+  <a class="button secondary" href="/evidence/cases">View all</a>
 </section>
 
 {% if cases %}
@@ -37,12 +37,12 @@
       <span class="pill">{{ case.case_type }}</span>
       <span>{{ case.status }}</span>
     </div>
-    <h3><a href="/cases/{{ case.id }}">{{ case.title }}</a></h3>
+    <h3><a href="/evidence/cases/{{ case.id }}">{{ case.title }}</a></h3>
     <p>{{ case.description or "No description yet." }}</p>
     <div class="card-actions">
-      <a href="/cases/{{ case.id }}/upload">Upload</a>
-      <a href="/cases/{{ case.id }}/insights">Insights</a>
-      <a href="/cases/{{ case.id }}/export">Export</a>
+      <a href="/evidence/cases/{{ case.id }}/upload">Upload</a>
+      <a href="/evidence/cases/{{ case.id }}/insights">Insights</a>
+      <a href="/evidence/cases/{{ case.id }}/export">Export</a>
     </div>
   </article>
   {% endfor %}
@@ -52,7 +52,7 @@
   <span class="eyebrow">Start clean</span>
   <h2>No cases yet</h2>
   <p>Create the first case to begin uploading evidence, importing candidates, and preparing a package.</p>
-  <a class="button primary" href="/cases/new">Create Case</a>
+  <a class="button primary" href="/evidence/cases/create">Create Case</a>
 </div>
 {% endif %}
 {% endblock %}

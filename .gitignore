@@ -9,7 +9,7 @@ logs/
 data/
 *.db
 *.egg-info/
-services/document-organizer/configs/*.json
-!services/document-organizer/configs/sample_exhibit.json
+services/evidence/document-organizer/configs/*.json
+!services/evidence/document-organizer/configs/sample_exhibit.json
 .DS_Store
 Thumbs.db

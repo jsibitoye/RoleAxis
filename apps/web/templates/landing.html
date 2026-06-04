@@ -1,17 +1,17 @@
 {% extends "base.html" %}
-{% block title %}RoleAxis Evidence | Premium evidence packaging{% endblock %}
+{% block title %}RoleAxis | Professional intelligence platform{% endblock %}
 {% block landing %}
 <header class="landing-nav">
   <a class="brand" href="/">
     <span class="brand-mark">RA</span>
     <span>
       <strong>RoleAxis</strong>
-      <small>Evidence</small>
+      <small>Platform</small>
     </span>
   </a>
   <nav>
     {% if current_user %}
-    <a href="/dashboard">Dashboard</a>
+    <a href="/app">App Launcher</a>
     {% else %}
     <a href="/login">Sign in</a>
     <a href="/register">Create account</a>
@@ -20,17 +20,17 @@
 </header>
 <section class="hero">
   <div class="hero-content">
-    <span class="eyebrow">Premium legal-tech evidence command center</span>
-    <h1>RoleAxis Evidence</h1>
+    <span class="eyebrow">Career, evidence, and professional readiness intelligence</span>
+    <h1>RoleAxis</h1>
     <p>
-      Build immigration, academic, and portfolio evidence packages with structured intake,
-      professional exhibit naming, readiness intelligence, and attorney-ready ZIP exports.
+      AI-powered professional intelligence for career growth, evidence organization,
+      and case readiness.
     </p>
     <div class="hero-actions">
       {% if current_user %}
-      <a class="button primary" href="/dashboard">Open Dashboard</a>
+      <a class="button primary" href="/app">Open App Launcher</a>
       {% else %}
-      <a class="button primary" href="/register">Create Business Account</a>
+      <a class="button primary" href="/register">Create Account</a>
       <a class="button secondary" href="/login">Sign In</a>
       {% endif %}
     </div>
@@ -38,16 +38,16 @@
 </section>
 <section class="landing-band">
   <div>
-    <span class="metric">5</span>
-    <p>Case types supported across NIW, EB-1A, O-1, promotions, and portfolios.</p>
+    <span class="metric">3</span>
+    <p>Integrated workspaces for Evidence, Career, and Vault intelligence.</p>
   </div>
   <div>
-    <span class="metric">15</span>
-    <p>Evidence categories organized into a clean, attorney-facing package.</p>
+    <span class="metric">AI</span>
+    <p>Guided workflows for case readiness, interviews, resumes, and professional records.</p>
   </div>
   <div>
-    <span class="metric">ZIP</span>
-    <p>Exports include evidence table, index, summary, insights, and files.</p>
+    <span class="metric">SaaS</span>
+    <p>Account-isolated dashboards with polished modules built for serious professional work.</p>
   </div>
 </section>
 {% endblock %}

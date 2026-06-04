@@ -1,0 +1,7 @@
+﻿bin/
+obj/
+installer-output/
+config.json
+*.user
+*.suo
+.vs/

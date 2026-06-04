@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 class AppSettings(BaseSettings):
-    app_name: str = "RoleAxis Evidence"
+    app_name: str = "RoleAxis"
     environment: str = Field(default="local", alias="ROLEAXIS_ENV")
     database_url: str = Field(
         default=f"sqlite:///{(BASE_DIR / 'data' / 'roleaxis.db').as_posix()}",
@@ -20,8 +20,9 @@ class AppSettings(BaseSettings):
     upload_root: Path = Field(default=BASE_DIR / "uploads", alias="ROLEAXIS_UPLOAD_ROOT")
     export_root: Path = Field(default=BASE_DIR / "exports", alias="ROLEAXIS_EXPORT_ROOT")
     max_upload_mb: int = Field(default=50, alias="ROLEAXIS_MAX_UPLOAD_MB")
-    document_organizer_config_dir: Path = BASE_DIR / "services" / "document-organizer" / "configs"
-    email_crawler_reports_dir: Path = BASE_DIR / "services" / "email-crawler" / "data" / "reports"
+    document_organizer_config_dir: Path = BASE_DIR / "services" / "evidence" / "document-organizer" / "configs"
+    email_crawler_reports_dir: Path = BASE_DIR / "services" / "evidence" / "email-crawler" / "data" / "reports"
+    interview_assistant_dir: Path = BASE_DIR / "services" / "career" / "interview-assistant"
     allowed_upload_extensions_raw: str = Field(
         default=".pdf,.doc,.docx,.jpg,.jpeg,.png,.tif,.tiff,.txt,.csv,.xlsx",
         alias="ROLEAXIS_ALLOWED_UPLOAD_EXTENSIONS",
@@ -49,4 +50,3 @@ def get_settings() -> AppSettings:
     settings.export_root.mkdir(parents=True, exist_ok=True)
     (BASE_DIR / "data").mkdir(parents=True, exist_ok=True)
     return settings
-

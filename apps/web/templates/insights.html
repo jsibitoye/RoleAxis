@@ -11,7 +11,7 @@
   <div class="score-tile large">
     <span>Score</span>
     <strong>{{ insight.score }}%</strong>
-    <form method="post" action="/cases/{{ case.id }}/insights/generate">
+    <form method="post" action="/evidence/cases/{{ case.id }}/insights/generate">
       <button class="button secondary" type="submit">Regenerate</button>
     </form>
   </div>

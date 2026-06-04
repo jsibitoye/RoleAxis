@@ -11,24 +11,24 @@
   <div class="score-tile">
     <span>Readiness</span>
     <strong>{{ insight.score if insight else 0 }}%</strong>
-    <a href="/cases/{{ case.id }}/insights">Review insights</a>
+    <a href="/evidence/cases/{{ case.id }}/insights">Review insights</a>
   </div>
 </section>
 
 <section class="action-grid">
-  <a class="action-tile" href="/cases/{{ case.id }}/upload">
+  <a class="action-tile" href="/evidence/cases/{{ case.id }}/upload">
     <strong>Upload Evidence</strong>
     <span>Add files with validation and secure case storage.</span>
   </a>
-  <a class="action-tile" href="/cases/{{ case.id }}/evidence">
+  <a class="action-tile" href="/evidence/cases/{{ case.id }}/table">
     <strong>Evidence Table</strong>
     <span>Review categories, exhibit numbers, and professional names.</span>
   </a>
-  <a class="action-tile" href="/cases/{{ case.id }}/insights">
+  <a class="action-tile" href="/evidence/cases/{{ case.id }}/insights">
     <strong>Case Insights</strong>
     <span>Generate readiness scoring and missing-evidence guidance.</span>
   </a>
-  <a class="action-tile" href="/cases/{{ case.id }}/export">
+  <a class="action-tile" href="/evidence/cases/{{ case.id }}/export">
     <strong>Export Package</strong>
     <span>Download an attorney-ready ZIP package.</span>
   </a>
@@ -41,7 +41,7 @@
         <span class="eyebrow">Evidence health</span>
         <h2>{{ evidence_count }} item(s), {{ attached_count }} file(s)</h2>
       </div>
-      <form method="post" action="/cases/{{ case.id }}/organize">
+      <form method="post" action="/evidence/cases/{{ case.id }}/organize">
         <button class="button secondary" type="submit">Refresh Naming</button>
       </form>
     </div>
@@ -72,10 +72,10 @@
       </div>
     </div>
     <div class="integration-stack">
-      <form method="post" action="/cases/{{ case.id }}/imports/document-organizer">
+      <form method="post" action="/evidence/cases/{{ case.id }}/imports/document-organizer">
         <button class="button secondary full" type="submit">Scan Document Organizer</button>
       </form>
-      <form method="post" action="/cases/{{ case.id }}/imports/email">
+      <form method="post" action="/evidence/cases/{{ case.id }}/imports/email">
         <button class="button secondary full" type="submit">Import Email Candidates</button>
       </form>
     </div>

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Interview Assistant | RoleAxis Career{% endblock %}
+{% block page_eyebrow %}RoleAxis Career{% endblock %}
+{% block page_title %}Interview Assistant{% endblock %}
+{% block content %}
+<section class="platform-hero">
+  <div>
+    <span class="eyebrow">Desktop realtime copilot</span>
+    <h2>Realtime interview transcription and answer assistance</h2>
+    <p>
+      The existing Windows assistant is integrated as the first RoleAxis Career service.
+      It uses resume and job-description context, captures system audio, and streams
+      response guidance through OpenAI.
+    </p>
+  </div>
+</section>
+
+<section class="settings-grid">
+  <article class="setting-panel">
+    <span class="eyebrow">Source</span>
+    <h2>{{ "Ready" if status.project_exists else "Missing" }}</h2>
+    <p><strong>Project:</strong> {{ status.project_file }}</p>
+    <p><strong>Source present:</strong> {{ "Yes" if status.source_exists else "No" }}</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Configuration</span>
+    <h2>{{ "Safe example included" if status.config_example_exists else "Example missing" }}</h2>
+    <p>Use `OPENAI_API_KEY` or create a local ignored `config.json` beside the EXE.</p>
+    <p><strong>Example:</strong> {{ status.config_example }}</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Build</span>
+    <h2>{{ "Release build detected" if status.release_build_exists else "Build from source" }}</h2>
+    <p><strong>Command:</strong> dotnet build services\career\interview-assistant\RoleAxis.InterviewAssistant.csproj --configuration Release</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Installer</span>
+    <h2>{{ "Installer artifact found" if status.installer_exists else "Installer not committed" }}</h2>
+    <p>Installer output is intentionally ignored so large binaries are not committed.</p>
+  </article>
+</section>
+{% endblock %}

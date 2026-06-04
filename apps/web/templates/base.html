@@ -12,7 +12,7 @@
     {% else %}
       <div class="app-shell">
         <aside class="sidebar">
-          <a class="brand" href="/dashboard" aria-label="RoleAxis dashboard">
+          <a class="brand" href="/app" aria-label="RoleAxis platform">
             <span class="brand-mark">RA</span>
             <span>
               <strong>RoleAxis</strong>
@@ -20,9 +20,10 @@
             </span>
           </a>
           <nav class="nav-list" aria-label="Primary navigation">
-            <a href="/dashboard" class="{{ 'active' if active == 'dashboard' else '' }}">Dashboard</a>
-            <a href="/cases" class="{{ 'active' if active == 'cases' else '' }}">Cases</a>
-            <a href="/cases/new">Create Case</a>
+            <a href="/app" class="{{ 'active' if active == 'app' else '' }}">Platform</a>
+            <a href="/evidence" class="{{ 'active' if workspace == 'evidence' else '' }}">Evidence</a>
+            <a href="/career" class="{{ 'active' if workspace == 'career' else '' }}">Career</a>
+            <a href="/vault" class="{{ 'active' if workspace == 'vault' else '' }}">Vault</a>
             <a href="/settings" class="{{ 'active' if active == 'settings' else '' }}">Settings</a>
           </nav>
           {% if current_user is defined and current_user %}
@@ -43,11 +44,15 @@
         <main class="main-area">
           <header class="topbar">
             <div>
-              <span class="eyebrow">Attorney-ready evidence operations</span>
+              <span class="eyebrow">{% block page_eyebrow %}AI-powered professional intelligence{% endblock %}</span>
               <h1>{% block page_title %}RoleAxis Evidence{% endblock %}</h1>
             </div>
             {% if current_user is defined and current_user %}
-            <a class="button primary" href="/cases/new">New Case</a>
+            {% if workspace is defined and workspace == 'evidence' %}
+            <a class="button primary" href="/evidence/cases/create">New Case</a>
+            {% else %}
+            <a class="button primary" href="/app">App Launcher</a>
+            {% endif %}
             {% endif %}
           </header>
           {% block content %}{% endblock %}
