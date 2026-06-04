@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ case.title }} | RoleAxis Evidence{% endblock %}
+{% block page_title %}{{ case.title }}{% endblock %}
+{% block content %}
+<section class="case-hero-panel">
+  <div>
+    <span class="pill">{{ case.case_type }}</span>
+    <h2>{{ case.petitioner_name or "Petitioner not set" }}</h2>
+    <p>{{ case.description or "This workspace is ready for evidence intake, import, review, and export." }}</p>
+  </div>
+  <div class="score-tile">
+    <span>Readiness</span>
+    <strong>{{ insight.score if insight else 0 }}%</strong>
+    <a href="/cases/{{ case.id }}/insights">Review insights</a>
+  </div>
+</section>
+
+<section class="action-grid">
+  <a class="action-tile" href="/cases/{{ case.id }}/upload">
+    <strong>Upload Evidence</strong>
+    <span>Add files with validation and secure case storage.</span>
+  </a>
+  <a class="action-tile" href="/cases/{{ case.id }}/evidence">
+    <strong>Evidence Table</strong>
+    <span>Review categories, exhibit numbers, and professional names.</span>
+  </a>
+  <a class="action-tile" href="/cases/{{ case.id }}/insights">
+    <strong>Case Insights</strong>
+    <span>Generate readiness scoring and missing-evidence guidance.</span>
+  </a>
+  <a class="action-tile" href="/cases/{{ case.id }}/export">
+    <strong>Export Package</strong>
+    <span>Download an attorney-ready ZIP package.</span>
+  </a>
+</section>
+
+<section class="split-layout">
+  <div>
+    <div class="section-header compact">
+      <div>
+        <span class="eyebrow">Evidence health</span>
+        <h2>{{ evidence_count }} item(s), {{ attached_count }} file(s)</h2>
+      </div>
+      <form method="post" action="/cases/{{ case.id }}/organize">
+        <button class="button secondary" type="submit">Refresh Naming</button>
+      </form>
+    </div>
+    {% if evidence_items %}
+    <div class="mini-list">
+      {% for item in evidence_items %}
+      <article>
+        <span class="pill">{{ item.exhibit_number or "Pending" }}</span>
+        <div>
+          <strong>{{ item.title }}</strong>
+          <small>{{ item.category }} | {{ item.source }}</small>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state small">
+      <p>No evidence yet. Upload files or import candidates to begin.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="section-header compact">
+      <div>
+        <span class="eyebrow">Integrations</span>
+        <h2>Import Candidates</h2>
+      </div>
+    </div>
+    <div class="integration-stack">
+      <form method="post" action="/cases/{{ case.id }}/imports/document-organizer">
+        <button class="button secondary full" type="submit">Scan Document Organizer</button>
+      </form>
+      <form method="post" action="/cases/{{ case.id }}/imports/email">
+        <button class="button secondary full" type="submit">Import Email Candidates</button>
+      </form>
+    </div>
+    {% if imports %}
+    <div class="mini-list">
+      {% for item in imports %}
+      <article>
+        <span class="pill">{{ item.imported_count }}</span>
+        <div>
+          <strong>{{ item.source }}</strong>
+          <small>{{ item.status }} | {{ item.details }}</small>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+

@@ -1,0 +1,14 @@
+{
+  "section_id": "A",
+  "section_title": "Sample Evidence Section",
+  "root_folder": "exhibits/A",
+  "dry_run": true,
+  "items": [
+    {
+      "exhibit_id": "A1",
+      "existing_name": "Sample Degree Certificate",
+      "match_contains": ["degree", "certificate"],
+      "proper_title": "A1 Sample Degree Certificate"
+    }
+  ]
+}

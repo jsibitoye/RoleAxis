@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Create Case | RoleAxis Evidence{% endblock %}
+{% block page_title %}Create Case{% endblock %}
+{% block content %}
+<section class="form-panel narrow">
+  <span class="eyebrow">New matter</span>
+  <h2>Open an evidence workspace</h2>
+  {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="/cases" class="stacked-form">
+    <label>
+      Case title
+      <input name="title" required placeholder="Example: EB-1A Evidence Package">
+    </label>
+    <label>
+      Case type
+      <select name="case_type" required>
+        {% for case_type in case_types %}
+        <option value="{{ case_type }}">{{ case_type }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Petitioner or owner
+      <input name="petitioner_name" placeholder="Full name">
+    </label>
+    <label>
+      Case notes
+      <textarea name="description" rows="5" placeholder="Briefly describe the objective, filing strategy, or portfolio goal."></textarea>
+    </label>
+    <button class="button primary" type="submit">Create Workspace</button>
+  </form>
+</section>
+{% endblock %}
+

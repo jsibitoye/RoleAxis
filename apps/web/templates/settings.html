@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Settings | RoleAxis Evidence{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block content %}
+<section class="settings-grid">
+  <article class="setting-panel">
+    <span class="eyebrow">Workspace</span>
+    <h2>{{ user.full_name }}</h2>
+    <p>{{ user.email }}</p>
+    <p><strong>Company:</strong> {{ user.company_name or "Not provided" }}</p>
+    <p><strong>Role:</strong> {{ user.role }}</p>
+    <p><strong>Last login:</strong> {{ user.last_login_at.strftime("%b %d, %Y %I:%M %p") if user.last_login_at else "First session" }}</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Storage</span>
+    <h2>Secure local paths</h2>
+    <p><strong>Uploads:</strong> {{ settings.upload_root }}</p>
+    <p><strong>Exports:</strong> {{ settings.export_root }}</p>
+    <p><strong>Database:</strong> {{ settings.database_url }}</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Validation</span>
+    <h2>Upload policy</h2>
+    <p>Max file size: {{ settings.max_upload_mb }} MB</p>
+    <p>Allowed file types: {{ settings.allowed_upload_extensions|join(", ") }}</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Integrations</span>
+    <h2>Service adapters</h2>
+    <p>Document organizer configs: {{ settings.document_organizer_config_dir }}</p>
+    <p>Email crawler reports: {{ settings.email_crawler_reports_dir }}</p>
+  </article>
+</section>
+{% endblock %}

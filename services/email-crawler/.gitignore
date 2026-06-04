@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+.env
+*.pyc
+data/cache/msal_token_cache.bin
+uploads/
+exports/
+logs/
+*.db
+.DS_Store
+Thumbs.db

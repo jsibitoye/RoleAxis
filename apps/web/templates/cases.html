@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Cases | RoleAxis Evidence{% endblock %}
+{% block page_title %}Cases{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <span class="eyebrow">Case management</span>
+    <h2>Evidence Workspaces</h2>
+  </div>
+  <a class="button primary" href="/cases/new">Create Case</a>
+</section>
+
+{% if cases %}
+<div class="table-shell">
+  <table>
+    <thead>
+      <tr>
+        <th>Case</th>
+        <th>Type</th>
+        <th>Petitioner</th>
+        <th>Status</th>
+        <th>Updated</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for case in cases %}
+      <tr>
+        <td><strong>{{ case.title }}</strong></td>
+        <td>{{ case.case_type }}</td>
+        <td>{{ case.petitioner_name or "Not provided" }}</td>
+        <td><span class="pill">{{ case.status }}</span></td>
+        <td>{{ case.updated_at.strftime("%b %d, %Y") }}</td>
+        <td><a class="text-link" href="/cases/{{ case.id }}">Open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <h2>No cases have been created</h2>
+  <p>RoleAxis creates separate workspaces for each matter so files, exports, and insights stay isolated.</p>
+  <a class="button primary" href="/cases/new">Create Case</a>
+</div>
+{% endif %}
+{% endblock %}
+

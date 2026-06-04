@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Export Package | RoleAxis Evidence{% endblock %}
+{% block page_title %}Export Package{% endblock %}
+{% block content %}
+<section class="form-panel narrow">
+  <span class="eyebrow">Attorney-ready package</span>
+  <h2>{{ case.title }}</h2>
+  <p class="muted">
+    The ZIP includes organized evidence folders, renamed files, evidence table, index,
+    case summary, and readiness insights.
+  </p>
+  <form method="post" action="/cases/{{ case.id }}/export">
+    <button class="button primary" type="submit">Generate ZIP Package</button>
+  </form>
+</section>
+
+<section class="section-header">
+  <div>
+    <span class="eyebrow">Export history</span>
+    <h2>Packages</h2>
+  </div>
+</section>
+{% if packages %}
+<div class="mini-list">
+  {% for package in packages %}
+  <article>
+    <span class="pill">{{ package.status }}</span>
+    <div>
+      <strong>{{ package.filename }}</strong>
+      <small>{{ package.created_at.strftime("%b %d, %Y %I:%M %p") }}</small>
+    </div>
+    <a class="button secondary" href="/packages/{{ package.id }}/download">Download</a>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state small">
+  <p>No exports yet.</p>
+</div>
+{% endif %}
+{% endblock %}
+

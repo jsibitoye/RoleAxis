@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Upload Evidence | RoleAxis Evidence{% endblock %}
+{% block page_title %}Upload Evidence{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <span class="eyebrow">{{ case.case_type }} workspace</span>
+  <h2>{{ case.title }}</h2>
+  {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="/cases/{{ case.id }}/upload" enctype="multipart/form-data" class="stacked-form">
+    <label>
+      Evidence files
+      <input name="files" type="file" multiple required>
+    </label>
+    <div class="form-grid">
+      <label>
+        Category
+        <select name="category">
+          <option value="">Auto-categorize</option>
+          {% for category in categories %}
+          <option value="{{ category }}">{{ category }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Source
+        <input name="source" value="Upload">
+      </label>
+    </div>
+    <label>
+      Description
+      <textarea name="description" rows="3" placeholder="What does this evidence prove?"></textarea>
+    </label>
+    <label>
+      Relevance notes
+      <textarea name="relevance_notes" rows="3" placeholder="Why should this be included in the petition or package?"></textarea>
+    </label>
+    <div class="button-row">
+      <button class="button primary" type="submit">Upload and Catalog</button>
+      <a class="button secondary" href="/cases/{{ case.id }}">Back to Case</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+

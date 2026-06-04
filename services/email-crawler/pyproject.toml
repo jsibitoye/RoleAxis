@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=74", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eb1a-miner"
+version = "0.1.0"
+description = "Outlook EB-1A evidence miner using Microsoft Graph + OAuth + LLM"
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "Proprietary" }
+authors = [{ name = "Josh" }]
+dependencies = [
+  # Graph + HTTP
+  "msal>=1.29.0",
+  "requests>=2.32.0",
+
+  # Config
+  "python-dotenv>=1.0.1",
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.4.0",
+
+  # Storage
+  "sqlalchemy>=2.0.32",
+
+  # Reporting
+  "pandas>=2.2.2",
+  "openpyxl>=3.1.5",
+  "jinja2>=3.1.4",
+
+  # Token storage + encryption
+  "keyring>=25.3.0",
+  "cryptography>=43.0.0",
+
+  # Resilience + CLI UX
+  "tenacity>=9.0.0",
+  "rich>=13.7.1",
+
+  # Attachment text extraction
+  "pdfminer.six>=20240706",
+  "python-docx>=1.1.2",
+  "python-pptx>=0.6.23",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.6.9",
+  "mypy>=1.11.2",
+  "pytest>=8.3.2",
+  "types-requests>=2.32.0.20240914",
+]
+
+[project.scripts]
+eb1a_scan = "eb1a_miner.__main__:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

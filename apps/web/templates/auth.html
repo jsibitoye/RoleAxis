@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% set is_register = mode == "register" %}
+{% block title %}{{ "Create Account" if is_register else "Sign In" }} | RoleAxis Evidence{% endblock %}
+{% block landing %}
+<header class="landing-nav">
+  <a class="brand" href="/">
+    <span class="brand-mark">RA</span>
+    <span>
+      <strong>RoleAxis</strong>
+      <small>Evidence</small>
+    </span>
+  </a>
+  <nav>
+    <a href="/">Home</a>
+    <a href="{{ '/login' if is_register else '/register' }}">{{ "Sign in" if is_register else "Create account" }}</a>
+  </nav>
+</header>
+
+<section class="auth-page">
+  <div class="auth-copy">
+    <span class="eyebrow">RoleAxis Evidence Cloud</span>
+    <h1>{{ "Create your business workspace" if is_register else "Welcome back" }}</h1>
+    <p>
+      Securely manage cases, evidence, exports, and readiness intelligence inside an
+      account-isolated legal-tech workspace.
+    </p>
+    <div class="trust-row">
+      <span>HttpOnly sessions</span>
+      <span>Per-user cases</span>
+      <span>Secure file paths</span>
+    </div>
+  </div>
+
+  <div class="auth-panel">
+    <span class="eyebrow">{{ "New account" if is_register else "Account access" }}</span>
+    <h2>{{ "Start RoleAxis Evidence" if is_register else "Sign in to RoleAxis" }}</h2>
+    {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ '/register' if is_register else '/login' }}" class="stacked-form">
+      {% if is_register %}
+      <label>
+        Full name
+        <input name="full_name" autocomplete="name" required value="{{ form.full_name if form else '' }}">
+      </label>
+      <label>
+        Company or firm
+        <input name="company_name" autocomplete="organization" value="{{ form.company_name if form else '' }}">
+      </label>
+      {% endif %}
+      <label>
+        Email
+        <input name="email" type="email" autocomplete="email" required value="{{ form.email if form else '' }}">
+      </label>
+      <label>
+        Password
+        <input name="password" type="password" autocomplete="{{ 'new-password' if is_register else 'current-password' }}" required>
+      </label>
+      <button class="button primary" type="submit">{{ "Create Account" if is_register else "Sign In" }}</button>
+    </form>
+    <p class="auth-switch">
+      {% if is_register %}
+      Already have an account? <a href="/login">Sign in</a>.
+      {% else %}
+      New to RoleAxis? <a href="/register">Create an account</a>.
+      {% endif %}
+    </p>
+  </div>
+</section>
+{% endblock %}

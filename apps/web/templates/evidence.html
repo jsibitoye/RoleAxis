@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Evidence Table | RoleAxis Evidence{% endblock %}
+{% block page_title %}Evidence Table{% endblock %}
+{% block content %}
+<section class="section-header">
+  <div>
+    <span class="eyebrow">{{ case.case_type }} evidence register</span>
+    <h2>{{ case.title }}</h2>
+  </div>
+  <div class="button-row">
+    <a class="button secondary" href="/cases/{{ case.id }}/upload">Upload</a>
+    <a class="button primary" href="/cases/{{ case.id }}/export">Export</a>
+  </div>
+</section>
+
+{% if items %}
+<div class="table-shell evidence-table">
+  <table>
+    <thead>
+      <tr>
+        <th>Exhibit</th>
+        <th>Evidence</th>
+        <th>Category</th>
+        <th>Source</th>
+        <th>Status</th>
+        <th>Package Name</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td><span class="pill">{{ item.exhibit_number }}</span></td>
+        <td>
+          <strong>{{ item.title }}</strong>
+          <small>{{ item.original_filename or "Candidate without attached file" }}</small>
+          <details class="row-editor">
+            <summary>Edit</summary>
+            <form method="post" action="/cases/{{ case.id }}/evidence/{{ item.id }}/update">
+              <input name="title" value="{{ item.title }}" aria-label="Title">
+              <select name="category" aria-label="Category">
+                {% for category in categories %}
+                <option value="{{ category }}" {{ 'selected' if item.category == category else '' }}>{{ category }}</option>
+                {% endfor %}
+              </select>
+              <select name="status" aria-label="Status">
+                {% for status in statuses %}
+                <option value="{{ status }}" {{ 'selected' if item.status == status else '' }}>{{ status }}</option>
+                {% endfor %}
+              </select>
+              <textarea name="description" rows="2" aria-label="Description">{{ item.description }}</textarea>
+              <textarea name="relevance_notes" rows="2" aria-label="Relevance notes">{{ item.relevance_notes }}</textarea>
+              <button class="button secondary" type="submit">Save</button>
+            </form>
+          </details>
+        </td>
+        <td>{{ item.category }}</td>
+        <td>{{ item.source }}</td>
+        <td>{{ item.status }}</td>
+        <td><code>{{ item.renamed_filename }}</code></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <h2>No evidence items yet</h2>
+  <p>Upload files or import candidates from the existing organizer and crawler services.</p>
+  <a class="button primary" href="/cases/{{ case.id }}/upload">Upload Evidence</a>
+</div>
+{% endif %}
+{% endblock %}
+

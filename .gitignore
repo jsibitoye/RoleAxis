@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+.env
+*.pyc
+uploads/
+exports/
+logs/
+data/
+*.db
+*.egg-info/
+services/document-organizer/configs/*.json
+!services/document-organizer/configs/sample_exhibit.json
+.DS_Store
+Thumbs.db

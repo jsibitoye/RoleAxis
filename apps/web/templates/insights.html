@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Case Insights | RoleAxis Evidence{% endblock %}
+{% block page_title %}Case Insights{% endblock %}
+{% block content %}
+<section class="case-hero-panel insight-panel">
+  <div>
+    <span class="eyebrow">{{ case.case_type }} readiness</span>
+    <h2>{{ case.title }}</h2>
+    <p>Rule-based scoring checks category coverage, attached evidence, and candidate review status.</p>
+  </div>
+  <div class="score-tile large">
+    <span>Score</span>
+    <strong>{{ insight.score }}%</strong>
+    <form method="post" action="/cases/{{ case.id }}/insights/generate">
+      <button class="button secondary" type="submit">Regenerate</button>
+    </form>
+  </div>
+</section>
+
+<section class="insight-grid">
+  <article>
+    <h3>Strengths</h3>
+    <ul>
+      {% for item in insight.strengths|json_list %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </article>
+  <article>
+    <h3>Weaknesses</h3>
+    <ul>
+      {% for item in insight.weaknesses|json_list %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </article>
+  <article>
+    <h3>Missing Evidence</h3>
+    <ul>
+      {% for item in insight.missing_evidence|json_list %}
+      <li>{{ item }}</li>
+      {% else %}
+      <li>No missing category detected.</li>
+      {% endfor %}
+    </ul>
+  </article>
+  <article>
+    <h3>Recommendations</h3>
+    <ul>
+      {% for item in insight.recommendations|json_list %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </article>
+</section>
+{% endblock %}
+
