@@ -8,6 +8,7 @@
     <h2>{{ case.title }}</h2>
   </div>
   <div class="button-row">
+    <a class="button secondary" href="/evidence/cases/{{ case.id }}/sources">Source Center</a>
     <a class="button secondary" href="/evidence/cases/{{ case.id }}/upload">Upload</a>
     <a class="button primary" href="/evidence/cases/{{ case.id }}/export">Export</a>
   </div>
@@ -22,6 +23,7 @@
         <th>Evidence</th>
         <th>Category</th>
         <th>Source</th>
+        <th>Signals</th>
         <th>Status</th>
         <th>Package Name</th>
       </tr>
@@ -55,6 +57,10 @@
         </td>
         <td>{{ item.category }}</td>
         <td>{{ item.source }}</td>
+        <td>
+          <strong>{{ item.confidence_score }}%</strong> confidence
+          <small>{{ item.relevance_score }}% relevance{% if item.evidence_date %} | {{ item.evidence_date }}{% endif %}</small>
+        </td>
         <td>{{ item.status }}</td>
         <td><code>{{ item.renamed_filename }}</code></td>
       </tr>
@@ -70,4 +76,3 @@
 </div>
 {% endif %}
 {% endblock %}
-

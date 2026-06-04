@@ -47,8 +47,8 @@ def ensure_schema_compatibility() -> None:
         if "users" not in tables:
             return
 
-        columns = {row[1] for row in conn.execute(text("PRAGMA table_info(users)")).all()}
-        additions = {
+        user_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(users)")).all()}
+        user_additions = {
             "company_name": "ALTER TABLE users ADD COLUMN company_name VARCHAR(255) NOT NULL DEFAULT ''",
             "password_hash": "ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''",
             "role": "ALTER TABLE users ADD COLUMN role VARCHAR(80) NOT NULL DEFAULT 'Owner'",
@@ -56,7 +56,30 @@ def ensure_schema_compatibility() -> None:
             "last_login_at": "ALTER TABLE users ADD COLUMN last_login_at DATETIME",
         }
 
-        for column_name, ddl in additions.items():
-            if column_name not in columns:
+        for column_name, ddl in user_additions.items():
+            if column_name not in user_columns:
                 conn.execute(text(ddl))
 
+        if "cases" in tables:
+            case_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(cases)")).all()}
+            case_additions = {
+                "workspace_category": (
+                    "ALTER TABLE cases ADD COLUMN workspace_category "
+                    "VARCHAR(80) NOT NULL DEFAULT 'Immigration'"
+                ),
+                "proof_objective": "ALTER TABLE cases ADD COLUMN proof_objective TEXT NOT NULL DEFAULT ''",
+            }
+            for column_name, ddl in case_additions.items():
+                if column_name not in case_columns:
+                    conn.execute(text(ddl))
+
+        if "evidence_items" in tables:
+            evidence_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(evidence_items)")).all()}
+            evidence_additions = {
+                "evidence_date": "ALTER TABLE evidence_items ADD COLUMN evidence_date VARCHAR(80) NOT NULL DEFAULT ''",
+                "confidence_score": "ALTER TABLE evidence_items ADD COLUMN confidence_score INTEGER NOT NULL DEFAULT 0",
+                "relevance_score": "ALTER TABLE evidence_items ADD COLUMN relevance_score INTEGER NOT NULL DEFAULT 0",
+            }
+            for column_name, ddl in evidence_additions.items():
+                if column_name not in evidence_columns:
+                    conn.execute(text(ddl))

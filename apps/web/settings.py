@@ -24,7 +24,7 @@ class AppSettings(BaseSettings):
     email_crawler_reports_dir: Path = BASE_DIR / "services" / "evidence" / "email-crawler" / "data" / "reports"
     interview_assistant_dir: Path = BASE_DIR / "services" / "career" / "interview-assistant"
     allowed_upload_extensions_raw: str = Field(
-        default=".pdf,.doc,.docx,.jpg,.jpeg,.png,.tif,.tiff,.txt,.csv,.xlsx",
+        default=".pdf,.doc,.docx,.pptx,.jpg,.jpeg,.png,.tif,.tiff,.txt,.csv,.xlsx,.zip",
         alias="ROLEAXIS_ALLOWED_UPLOAD_EXTENSIONS",
     )
 

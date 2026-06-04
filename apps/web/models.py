@@ -51,8 +51,10 @@ class Case(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
+    workspace_category: Mapped[str] = mapped_column(String(80), nullable=False, default="Immigration")
     case_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     petitioner_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    proof_objective: Mapped[str] = mapped_column(Text, nullable=False, default="")
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     status: Mapped[str] = mapped_column(String(80), nullable=False, default="Active")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
@@ -80,6 +82,18 @@ class Case(Base):
         back_populates="case",
         cascade="all, delete-orphan",
     )
+    source_permissions: Mapped[list["EvidenceSourcePermission"]] = relationship(
+        back_populates="case",
+        cascade="all, delete-orphan",
+    )
+    discovery_jobs: Mapped[list["EvidenceDiscoveryJob"]] = relationship(
+        back_populates="case",
+        cascade="all, delete-orphan",
+    )
+    candidates: Mapped[list["EvidenceCandidate"]] = relationship(
+        back_populates="case",
+        cascade="all, delete-orphan",
+    )
 
 
 class EvidenceItem(Base):
@@ -94,6 +108,9 @@ class EvidenceItem(Base):
     category: Mapped[str] = mapped_column(String(120), nullable=False, default="Other Supporting Evidence")
     source: Mapped[str] = mapped_column(String(120), nullable=False, default="Upload")
     file_path: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    evidence_date: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    confidence_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    relevance_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     relevance_notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
     status: Mapped[str] = mapped_column(String(80), nullable=False, default="Cataloged")
@@ -142,3 +159,71 @@ class CaseInsight(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
     case: Mapped[Case] = relationship(back_populates="insights")
+
+
+class EvidenceSourcePermission(Base):
+    __tablename__ = "evidence_source_permissions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
+    source_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    provider: Mapped[str] = mapped_column(String(120), nullable=False)
+    scope: Mapped[str] = mapped_column(String(160), nullable=False)
+    permission_note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(80), nullable=False, default="Authorized")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+
+    case: Mapped[Case] = relationship(back_populates="source_permissions")
+    discovery_jobs: Mapped[list["EvidenceDiscoveryJob"]] = relationship(
+        back_populates="source_permission",
+        cascade="all, delete-orphan",
+    )
+
+
+class EvidenceDiscoveryJob(Base):
+    __tablename__ = "evidence_discovery_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
+    source_permission_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evidence_source_permissions.id"),
+        nullable=True,
+        index=True,
+    )
+    source_summary: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(80), nullable=False, default="Completed")
+    candidates_found: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+
+    case: Mapped[Case] = relationship(back_populates="discovery_jobs")
+    source_permission: Mapped[EvidenceSourcePermission | None] = relationship(back_populates="discovery_jobs")
+    candidates: Mapped[list["EvidenceCandidate"]] = relationship(
+        back_populates="discovery_job",
+        cascade="all, delete-orphan",
+    )
+
+
+class EvidenceCandidate(Base):
+    __tablename__ = "evidence_candidates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), nullable=False, index=True)
+    discovery_job_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evidence_discovery_jobs.id"),
+        nullable=True,
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    category: Mapped[str] = mapped_column(String(120), nullable=False, default="Other Supporting Evidence")
+    suggested_exhibit_number: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    confidence_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    relevance_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    source_type: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    source_detail: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    evidence_date: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(80), nullable=False, default="Pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+
+    case: Mapped[Case] = relationship(back_populates="candidates")
+    discovery_job: Mapped[EvidenceDiscoveryJob | None] = relationship(back_populates="candidates")

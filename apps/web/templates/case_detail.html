@@ -4,9 +4,9 @@
 {% block content %}
 <section class="case-hero-panel">
   <div>
-    <span class="pill">{{ case.case_type }}</span>
+    <span class="pill">{{ case.workspace_category }} / {{ case.case_type }}</span>
     <h2>{{ case.petitioner_name or "Petitioner not set" }}</h2>
-    <p>{{ case.description or "This workspace is ready for evidence intake, import, review, and export." }}</p>
+    <p>{{ case.proof_objective or case.description or "This workspace is ready for evidence discovery, review, intelligence, and export." }}</p>
   </div>
   <div class="score-tile">
     <span>Readiness</span>
@@ -16,6 +16,10 @@
 </section>
 
 <section class="action-grid">
+  <a class="action-tile" href="/evidence/cases/{{ case.id }}/sources">
+    <strong>Evidence Source Center</strong>
+    <span>{{ source_count }} approved source(s), {{ pending_candidate_count }} inbox candidate(s).</span>
+  </a>
   <a class="action-tile" href="/evidence/cases/{{ case.id }}/upload">
     <strong>Upload Evidence</strong>
     <span>Add files with validation and secure case storage.</span>
@@ -27,6 +31,10 @@
   <a class="action-tile" href="/evidence/cases/{{ case.id }}/insights">
     <strong>Case Insights</strong>
     <span>Generate readiness scoring and missing-evidence guidance.</span>
+  </a>
+  <a class="action-tile" href="/evidence/cases/{{ case.id }}/intelligence">
+    <strong>Evidence Intelligence</strong>
+    <span>Review timeline, missions, gap analysis, and reviewer risks.</span>
   </a>
   <a class="action-tile" href="/evidence/cases/{{ case.id }}/export">
     <strong>Export Package</strong>
@@ -68,10 +76,11 @@
     <div class="section-header compact">
       <div>
         <span class="eyebrow">Integrations</span>
-        <h2>Import Candidates</h2>
+        <h2>Import and Discover</h2>
       </div>
     </div>
     <div class="integration-stack">
+      <a class="button secondary full" href="/evidence/cases/{{ case.id }}/sources">Open Source Center</a>
       <form method="post" action="/evidence/cases/{{ case.id }}/imports/document-organizer">
         <button class="button secondary full" type="submit">Scan Document Organizer</button>
       </form>
@@ -95,4 +104,3 @@
   </div>
 </section>
 {% endblock %}
-

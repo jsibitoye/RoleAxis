@@ -2,7 +2,7 @@
 
 RoleAxis is a professional intelligence SaaS platform with three workspaces:
 
-- **RoleAxis Evidence**: case evidence, readiness insights, and attorney-ready export packages.
+- **RoleAxis Evidence**: objective-first evidence intelligence, discovery, readiness strategy, and attorney-ready export packages.
 - **RoleAxis Career**: interview, presentation, meeting, job-search, and resume intelligence.
 - **RoleAxis Vault**: canonical professional profile, credentials, achievements, and document memory.
 
@@ -26,6 +26,7 @@ Open <http://127.0.0.1:8000>.
 - Login: <http://127.0.0.1:8000/login>
 - App launcher: <http://127.0.0.1:8000/app>
 - Evidence: <http://127.0.0.1:8000/evidence>
+- Evidence workspace create: <http://127.0.0.1:8000/evidence/cases/create>
 - Career: <http://127.0.0.1:8000/career>
 - Vault: <http://127.0.0.1:8000/vault>
 
@@ -34,13 +35,17 @@ Open <http://127.0.0.1:8000>.
 - Register and log in to an account-isolated SaaS workspace.
 - Land on `/app` after login or registration.
 - Open RoleAxis Evidence from the app launcher.
-- Create evidence cases by matter type.
+- Create objective-first Evidence workspaces across Immigration, Career, Academic, Business, Legal, and Custom categories.
+- Define what the workspace is trying to prove before collecting files.
+- Authorize source discovery for local computer, email, cloud storage, professional profiles, and manual upload workflows.
+- Review Evidence Inbox candidates before anything becomes approved evidence.
 - Upload and securely store evidence files in separate case folders.
-- Categorize evidence, generate exhibit numbers, and produce professional filenames.
+- Categorize evidence, generate `EXHIBIT_A001`-style exhibit numbers, and produce professional filenames.
 - Import candidates from the document organizer configs.
 - Import high-level candidates from email crawler reports when present.
 - Generate readiness insights using rule-based scoring.
-- Export an attorney-ready ZIP with organized folders, evidence table, evidence index, case summary, and readiness insights.
+- Open Evidence Intelligence for gap analysis, roadmap, discovery missions, professional timeline, achievement graph, relationship map, reputation score, and reviewer concerns.
+- Export an attorney-ready ZIP with organized folders, evidence table, evidence index, case summary, readiness insights, professional timeline, and case readiness roadmap.
 - Open RoleAxis Career and verify the integrated Interview Assistant source/build status.
 - Open RoleAxis Vault module placeholders for profile, resume, credentials, projects, publications, awards, and achievements.
 

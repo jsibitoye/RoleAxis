@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Cases | RoleAxis Evidence{% endblock %}
-{% block page_title %}Cases{% endblock %}
+{% block title %}Evidence Workspaces | RoleAxis Evidence{% endblock %}
+{% block page_title %}Evidence Workspaces{% endblock %}
 {% block content %}
 <section class="section-header">
   <div>
-    <span class="eyebrow">Case management</span>
+    <span class="eyebrow">Objective management</span>
     <h2>Evidence Workspaces</h2>
   </div>
-  <a class="button primary" href="/evidence/cases/create">Create Case</a>
+  <a class="button primary" href="/evidence/cases/create">Create Workspace</a>
 </section>
 
 {% if cases %}
@@ -15,9 +15,9 @@
   <table>
     <thead>
       <tr>
-        <th>Case</th>
-        <th>Type</th>
-        <th>Petitioner</th>
+        <th>Workspace</th>
+        <th>Template</th>
+        <th>Objective</th>
         <th>Status</th>
         <th>Updated</th>
         <th></th>
@@ -26,9 +26,9 @@
     <tbody>
       {% for case in cases %}
       <tr>
-        <td><strong>{{ case.title }}</strong></td>
-        <td>{{ case.case_type }}</td>
-        <td>{{ case.petitioner_name or "Not provided" }}</td>
+        <td><strong>{{ case.title }}</strong><small>{{ case.petitioner_name or "Owner not provided" }}</small></td>
+        <td>{{ case.workspace_category }} / {{ case.case_type }}</td>
+        <td>{{ case.proof_objective or "Not provided" }}</td>
         <td><span class="pill">{{ case.status }}</span></td>
         <td>{{ case.updated_at.strftime("%b %d, %Y") }}</td>
         <td><a class="text-link" href="/evidence/cases/{{ case.id }}">Open</a></td>
@@ -39,10 +39,9 @@
 </div>
 {% else %}
 <div class="empty-state">
-  <h2>No cases have been created</h2>
-  <p>RoleAxis creates separate workspaces for each matter so files, exports, and insights stay isolated.</p>
-  <a class="button primary" href="/evidence/cases/create">Create Case</a>
+  <h2>No evidence workspaces have been created</h2>
+  <p>RoleAxis creates separate workspaces for each objective so files, exports, discovery candidates, and insights stay isolated.</p>
+  <a class="button primary" href="/evidence/cases/create">Create Workspace</a>
 </div>
 {% endif %}
 {% endblock %}
-

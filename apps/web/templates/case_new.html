@@ -1,34 +1,55 @@
 {% extends "base.html" %}
-{% block title %}Create Case | RoleAxis Evidence{% endblock %}
-{% block page_title %}Create Case{% endblock %}
+{% block title %}Create Evidence Workspace | RoleAxis Evidence{% endblock %}
+{% block page_title %}Create Evidence Workspace{% endblock %}
 {% block content %}
-<section class="form-panel narrow">
-  <span class="eyebrow">New matter</span>
-  <h2>Open an evidence workspace</h2>
+<section class="form-panel">
+  <span class="eyebrow">Objective-first evidence</span>
+  <h2>What are you trying to prove?</h2>
   {% if error %}<div class="alert">{{ error }}</div>{% endif %}
   <form method="post" action="/evidence/cases" class="stacked-form">
+    <div class="form-grid">
+      <label>
+        Workspace title
+        <input name="title" required placeholder="Example: EB-1A Evidence Strategy">
+      </label>
+      <label>
+        Workspace template
+        <select name="case_type" required>
+          {% for category, templates in workspace_categories.items() %}
+          <optgroup label="{{ category }}">
+            {% for template in templates %}
+            <option value="{{ template.name }}">{{ template.name }}</option>
+            {% endfor %}
+          </optgroup>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <div class="form-grid">
+      <label>
+        Owner
+        <input name="petitioner_name" placeholder="Full name or organization">
+      </label>
+      <label>
+        Proof objective
+        <input name="proof_objective" placeholder="Example: I qualify for EB-1A because of sustained acclaim.">
+      </label>
+    </div>
     <label>
-      Case title
-      <input name="title" required placeholder="Example: EB-1A Evidence Package">
+      Strategy notes
+      <textarea name="description" rows="5" placeholder="Summarize the proof strategy, reviewer audience, or outcome this workspace should support."></textarea>
     </label>
-    <label>
-      Case type
-      <select name="case_type" required>
-        {% for case_type in case_types %}
-        <option value="{{ case_type }}">{{ case_type }}</option>
+    <div class="template-strip">
+      {% for category, templates in workspace_categories.items() %}
+      <article>
+        <span class="eyebrow">{{ category }}</span>
+        {% for template in templates[:3] %}
+        <small>{{ template.name }}</small>
         {% endfor %}
-      </select>
-    </label>
-    <label>
-      Petitioner or owner
-      <input name="petitioner_name" placeholder="Full name">
-    </label>
-    <label>
-      Case notes
-      <textarea name="description" rows="5" placeholder="Briefly describe the objective, filing strategy, or portfolio goal."></textarea>
-    </label>
+      </article>
+      {% endfor %}
+    </div>
     <button class="button primary" type="submit">Create Workspace</button>
   </form>
 </section>
 {% endblock %}
-

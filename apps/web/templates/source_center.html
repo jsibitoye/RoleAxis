@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Evidence Source Center | RoleAxis Evidence{% endblock %}
+{% block page_eyebrow %}RoleAxis Evidence{% endblock %}
+{% block page_title %}Evidence Source Center{% endblock %}
+{% block content %}
+<section class="case-hero-panel">
+  <div>
+    <span class="pill">{{ case.case_type }}</span>
+    <h2>{{ case.title }}</h2>
+    <p>Approved sources create discovery jobs. Candidates stay in the Evidence Inbox until accepted or rejected.</p>
+  </div>
+  <div class="score-tile">
+    <span>Inbox</span>
+    <strong>{{ candidates|selectattr("status", "equalto", "Pending")|list|length }}</strong>
+    <a href="/evidence/cases/{{ case.id }}/table">Evidence vault</a>
+  </div>
+</section>
+
+<section class="split-layout">
+  <div class="form-panel">
+    <span class="eyebrow">Permissioned discovery</span>
+    <h2>Authorize a source</h2>
+    <form method="post" action="/evidence/cases/{{ case.id }}/sources/discover" class="stacked-form">
+      <label>
+        Source type
+        <select name="source_type" required>
+          {% for group in source_groups %}
+          <option value="{{ group.name }}">{{ group.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Provider or location
+        <select name="provider" required>
+          {% for group in source_groups %}
+          <optgroup label="{{ group.name }}">
+            {% for provider in group.providers %}
+            <option value="{{ provider }}">{{ provider }}</option>
+            {% endfor %}
+          </optgroup>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Scope
+        <select name="scope" required>
+          {% for group in source_groups %}
+          <optgroup label="{{ group.name }}">
+            {% for scope in group.scopes %}
+            <option value="{{ scope }}">{{ scope }}</option>
+            {% endfor %}
+          </optgroup>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Permission note
+        <textarea name="permission_note" rows="3" placeholder="Example: Search only my last 24 months of Gmail for awards, publications, and recommendation letters."></textarea>
+      </label>
+      <button class="button primary" type="submit">Run Discovery Job</button>
+    </form>
+  </div>
+
+  <div>
+    <div class="section-header compact">
+      <div>
+        <span class="eyebrow">Approved sources</span>
+        <h2>{{ permissions|length }} permission(s)</h2>
+      </div>
+    </div>
+    {% if permissions %}
+    <div class="mini-list">
+      {% for permission in permissions %}
+      <article>
+        <span class="pill">{{ permission.status }}</span>
+        <div>
+          <strong>{{ permission.source_type }} / {{ permission.provider }}</strong>
+          <small>{{ permission.scope }} | {{ permission.permission_note or "No note" }}</small>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state small">
+      <p>No source permissions have been recorded for this workspace.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section-header">
+  <div>
+    <span class="eyebrow">Evidence inbox</span>
+    <h2>Review discovery candidates</h2>
+  </div>
+  <a class="button secondary" href="/evidence/cases/{{ case.id }}/intelligence">Open Intelligence</a>
+</section>
+
+{% if candidates %}
+<div class="candidate-grid">
+  {% for candidate in candidates %}
+  <article class="candidate-card {{ 'muted-card' if candidate.status != 'Pending' else '' }}">
+    <div class="card-topline">
+      <span class="pill">{{ candidate.status }}</span>
+      <span>{{ candidate.suggested_exhibit_number }}</span>
+    </div>
+    <h3>{{ candidate.title }}</h3>
+    <p>{{ candidate.description }}</p>
+    <div class="signal-row">
+      <span>Confidence <strong>{{ candidate.confidence_score }}%</strong></span>
+      <span>Relevance <strong>{{ candidate.relevance_score }}%</strong></span>
+    </div>
+    <small>{{ candidate.category }} | {{ candidate.source_type }} | {{ candidate.source_detail }}</small>
+    {% if candidate.status == "Pending" %}
+    <div class="card-actions">
+      <form method="post" action="/evidence/cases/{{ case.id }}/candidates/{{ candidate.id }}/approve">
+        <button class="button primary" type="submit">Accept</button>
+      </form>
+      <form method="post" action="/evidence/cases/{{ case.id }}/candidates/{{ candidate.id }}/reject">
+        <button class="button secondary" type="submit">Reject</button>
+      </form>
+    </div>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <span class="eyebrow">No candidates yet</span>
+  <h2>Run a discovery job</h2>
+  <p>RoleAxis will create reviewable candidates from approved sources. Nothing becomes evidence until you accept it.</p>
+</div>
+{% endif %}
+
+{% if jobs %}
+<section class="section-header">
+  <div>
+    <span class="eyebrow">Discovery jobs</span>
+    <h2>Recent scans</h2>
+  </div>
+</section>
+<div class="mini-list">
+  {% for job in jobs %}
+  <article>
+    <span class="pill">{{ job.candidates_found }}</span>
+    <div>
+      <strong>{{ job.source_summary }}</strong>
+      <small>{{ job.status }} | {{ job.created_at.strftime("%b %d, %Y") }}</small>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

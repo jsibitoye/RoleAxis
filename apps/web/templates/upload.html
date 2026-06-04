@@ -3,7 +3,7 @@
 {% block page_title %}Upload Evidence{% endblock %}
 {% block content %}
 <section class="form-panel">
-  <span class="eyebrow">{{ case.case_type }} workspace</span>
+  <span class="eyebrow">{{ case.workspace_category }} / {{ case.case_type }}</span>
   <h2>{{ case.title }}</h2>
   {% if error %}<div class="alert">{{ error }}</div>{% endif %}
   <form method="post" action="/evidence/cases/{{ case.id }}/upload" enctype="multipart/form-data" class="stacked-form">
@@ -32,7 +32,7 @@
     </label>
     <label>
       Relevance notes
-      <textarea name="relevance_notes" rows="3" placeholder="Why should this be included in the petition or package?"></textarea>
+      <textarea name="relevance_notes" rows="3" placeholder="Why should this be included for this objective?"></textarea>
     </label>
     <div class="button-row">
       <button class="button primary" type="submit">Upload and Catalog</button>
@@ -41,4 +41,3 @@
   </form>
 </section>
 {% endblock %}
-

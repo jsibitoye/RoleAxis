@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Evidence Intelligence | RoleAxis Evidence{% endblock %}
+{% block page_eyebrow %}RoleAxis Evidence{% endblock %}
+{% block page_title %}Evidence Intelligence{% endblock %}
+{% block content %}
+<section class="case-hero-panel insight-panel">
+  <div>
+    <span class="pill">{{ case.workspace_category }} / {{ case.case_type }}</span>
+    <h2>{{ case.proof_objective or case.title }}</h2>
+    <p>RoleAxis evaluates what the workspace is trying to prove, what evidence exists, what is missing, and what should happen next.</p>
+  </div>
+  <div class="score-tile large">
+    <span>Current Score</span>
+    <strong>{{ intelligence.score }}%</strong>
+    <small>Target {{ intelligence.target_score }}%</small>
+  </div>
+</section>
+
+<section class="metric-grid">
+  <article class="metric-card">
+    <span>Evidence Inbox</span>
+    <strong>{{ intelligence.pending_candidate_count }}</strong>
+  </article>
+  <article class="metric-card">
+    <span>Roadmap Target</span>
+    <strong>{{ intelligence.target_score }}%</strong>
+  </article>
+  <article class="metric-card">
+    <span>Reputation</span>
+    <strong>{{ intelligence.reputation_score }}%</strong>
+  </article>
+  <article class="metric-card accent">
+    <span>Missions</span>
+    <strong>{{ intelligence.missions|length }}</strong>
+  </article>
+</section>
+
+<section class="split-layout">
+  <article class="setting-panel">
+    <span class="eyebrow">Gap analysis</span>
+    <h2>Workspace requirements</h2>
+    <div class="gap-list">
+      {% for row in intelligence.gap_rows %}
+      <div>
+        <span class="{{ 'status-dot complete' if row.complete else 'status-dot' }}"></span>
+        <strong>{{ row.label }}</strong>
+        <small>{{ row.count }} of {{ row.target }} | {{ row.categories }}</small>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="setting-panel">
+    <span class="eyebrow">Case readiness roadmap</span>
+    <h2>Next best actions</h2>
+    <ol class="roadmap-list">
+      {% for step in intelligence.roadmap %}
+      <li>{{ step }}</li>
+      {% else %}
+      <li>Evidence coverage is strong. Run reviewer mode before export.</li>
+      {% endfor %}
+    </ol>
+  </article>
+</section>
+
+<section class="split-layout">
+  <article class="setting-panel">
+    <span class="eyebrow">Discovery missions</span>
+    <h2>Evidence hunts</h2>
+    <div class="mini-list embedded">
+      {% for mission in intelligence.missions %}
+      <article>
+        <span class="pill">{{ mission.progress }}</span>
+        <div>
+          <strong>{{ mission.title }}</strong>
+          <small>{{ mission.next_step }}</small>
+        </div>
+      </article>
+      {% else %}
+      <article>
+        <span class="pill">Ready</span>
+        <div>
+          <strong>No active missions</strong>
+          <small>RoleAxis does not see a priority gap from the current evidence.</small>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="setting-panel">
+    <span class="eyebrow">AI case reviewer</span>
+    <h2>Reviewer concerns</h2>
+    <ul class="insight-list">
+      {% for concern in intelligence.reviewer_concerns %}
+      <li>{{ concern }}</li>
+      {% else %}
+      <li>No major concerns detected by the current rule-based reviewer.</li>
+      {% endfor %}
+    </ul>
+  </article>
+</section>
+
+<section class="section-header">
+  <div>
+    <span class="eyebrow">Professional timeline</span>
+    <h2>Evidence chronology</h2>
+  </div>
+</section>
+<div class="timeline">
+  {% for item in intelligence.timeline %}
+  <article>
+    <span>{{ item.year }}</span>
+    <div>
+      <strong>{{ item.title }}</strong>
+      <small>{{ item.category }} | {{ item.exhibit }}</small>
+    </div>
+  </article>
+  {% else %}
+  <article>
+    <span>Now</span>
+    <div>
+      <strong>Timeline waiting for evidence</strong>
+      <small>Upload or approve evidence to build the professional chronology.</small>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+<section class="split-layout">
+  <article class="setting-panel">
+    <span class="eyebrow">Achievement graph</span>
+    <h2>Evidence categories</h2>
+    <div class="graph-cloud">
+      {% for node in intelligence.graph_nodes %}
+      <span class="{{ 'active' if node.active else '' }}">{{ node.label }} <strong>{{ node.count }}</strong></span>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="setting-panel">
+    <span class="eyebrow">Relationship map</span>
+    <h2>Connected proof</h2>
+    <div class="relationship-list">
+      {% for relation in intelligence.relationships %}
+      <div>
+        <span class="{{ 'status-dot complete' if relation.complete else 'status-dot' }}"></span>
+        <strong>{{ relation.label }}</strong>
+        <small>{{ relation.strength }} connection(s)</small>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<div class="button-row">
+  <a class="button secondary" href="/evidence/cases/{{ case.id }}/sources">Review Evidence Inbox</a>
+  <a class="button secondary" href="/evidence/cases/{{ case.id }}/insights">Open Insights</a>
+  <a class="button primary" href="/evidence/cases/{{ case.id }}/export">Export Package</a>
+</div>
+{% endblock %}

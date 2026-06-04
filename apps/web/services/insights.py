@@ -6,51 +6,7 @@ from collections import Counter
 from sqlalchemy.orm import Session
 
 from apps.web.models import Case, CaseInsight, EvidenceItem
-
-
-CASE_REQUIREMENTS: dict[str, list[tuple[str, list[str]]]] = {
-    "NIW": [
-        ("Degree evidence", ["Degrees"]),
-        ("Certifications or credentials", ["Certifications"]),
-        ("Publications or research", ["Publications", "Research Evidence"]),
-        ("Employment evidence", ["Employment Evidence"]),
-        ("Recommendation letters", ["Recommendation Letters"]),
-        ("Project evidence", ["Projects"]),
-        ("National importance evidence", ["Projects", "Media Mentions", "Research Evidence", "Publications"]),
-    ],
-    "EB-1A": [
-        ("Awards", ["Awards"]),
-        ("Publications", ["Publications"]),
-        ("Citations", ["Citations"]),
-        ("Judging or peer review", ["Peer Review/Judging Evidence"]),
-        ("Media mentions", ["Media Mentions"]),
-        ("Professional memberships", ["Professional Memberships"]),
-        ("Original contributions", ["Projects", "Research Evidence", "Patents"]),
-    ],
-    "O-1": [
-        ("Awards", ["Awards"]),
-        ("Media coverage", ["Media Mentions"]),
-        ("Critical roles", ["Employment Evidence", "Projects"]),
-        ("Recommendation letters", ["Recommendation Letters"]),
-        ("Publications", ["Publications"]),
-        ("Professional recognition", ["Awards", "Professional Memberships", "Conference/Speaking Evidence"]),
-    ],
-    "Academic Promotion": [
-        ("Degree evidence", ["Degrees"]),
-        ("Publications", ["Publications"]),
-        ("Citations", ["Citations"]),
-        ("Peer review or judging", ["Peer Review/Judging Evidence"]),
-        ("Research evidence", ["Research Evidence"]),
-        ("Recommendation letters", ["Recommendation Letters"]),
-    ],
-    "Professional Portfolio": [
-        ("Employment evidence", ["Employment Evidence"]),
-        ("Projects", ["Projects"]),
-        ("Awards or recognition", ["Awards", "Media Mentions"]),
-        ("Certifications", ["Certifications"]),
-        ("Speaking or public proof", ["Conference/Speaking Evidence", "Media Mentions"]),
-    ],
-}
+from apps.web.services.evidence_framework import CASE_REQUIREMENTS
 
 
 def _json_list(values: list[str]) -> str:
@@ -127,4 +83,3 @@ def parse_json_list(raw: str) -> list[str]:
     except json.JSONDecodeError:
         return []
     return [str(item) for item in value] if isinstance(value, list) else []
-

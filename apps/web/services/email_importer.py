@@ -136,6 +136,8 @@ def import_email_candidates(db: Session, case: Case, limit: int = 40) -> Evidenc
             category=candidate["category"],
             source="Email Crawler",
             file_path="",
+            confidence_score=72,
+            relevance_score=80,
             description=candidate["description"],
             relevance_notes=candidate["notes"],
             status="Candidate",
@@ -154,4 +156,3 @@ def import_email_candidates(db: Session, case: Case, limit: int = 40) -> Evidenc
     db.commit()
     db.refresh(record)
     return record
-

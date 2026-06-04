@@ -11,7 +11,17 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from apps.web.database import get_db, init_db
-from apps.web.models import Case, CaseInsight, EvidenceImport, EvidenceItem, ExportPackage, User
+from apps.web.models import (
+    Case,
+    CaseInsight,
+    EvidenceCandidate,
+    EvidenceDiscoveryJob,
+    EvidenceImport,
+    EvidenceItem,
+    EvidenceSourcePermission,
+    ExportPackage,
+    User,
+)
 from apps.web.services.auth import (
     SESSION_COOKIE,
     authenticate_user,
@@ -24,7 +34,14 @@ from apps.web.services.auth import (
     set_session_cookie,
 )
 from apps.web.services.career import get_interview_assistant_status
+from apps.web.services.discovery import approve_candidate, build_case_intelligence, create_discovery_job, reject_candidate
 from apps.web.services.email_importer import import_email_candidates
+from apps.web.services.evidence_framework import (
+    EVIDENCE_SOURCE_GROUPS,
+    WORKSPACE_CATEGORIES,
+    category_for_template,
+    objective_for_template,
+)
 from apps.web.services.exporter import build_export_package
 from apps.web.services.insights import analyze_case, parse_json_list
 from apps.web.services.organizer import (
@@ -246,6 +263,20 @@ def evidence_dashboard(
         .scalar()
         or 0
     )
+    candidate_count = (
+        db.query(func.count(EvidenceCandidate.id))
+        .join(Case, EvidenceCandidate.case_id == Case.id)
+        .filter(Case.user_id == current_user.id, EvidenceCandidate.status == "Pending")
+        .scalar()
+        or 0
+    )
+    source_count = (
+        db.query(func.count(EvidenceSourcePermission.id))
+        .join(Case, EvidenceSourcePermission.case_id == Case.id)
+        .filter(Case.user_id == current_user.id)
+        .scalar()
+        or 0
+    )
     latest_scores = (
         db.query(CaseInsight.score)
         .join(Case, CaseInsight.case_id == Case.id)
@@ -263,6 +294,8 @@ def evidence_dashboard(
             "case_count": case_count,
             "evidence_count": evidence_count,
             "export_count": export_count,
+            "candidate_count": candidate_count,
+            "source_count": source_count,
             "avg_score": avg_score,
             "active": "dashboard",
             "workspace": "evidence",
@@ -303,7 +336,13 @@ def new_case_page(
     return templates.TemplateResponse(
         request,
         "case_new.html",
-        {"case_types": CASE_TYPES, "active": "cases", "workspace": "evidence", "current_user": current_user},
+        {
+            "case_types": CASE_TYPES,
+            "workspace_categories": WORKSPACE_CATEGORIES,
+            "active": "cases",
+            "workspace": "evidence",
+            "current_user": current_user,
+        },
     )
 
 
@@ -315,6 +354,7 @@ def create_case(
     title: Annotated[str, Form()],
     case_type: Annotated[str, Form()],
     petitioner_name: Annotated[str, Form()] = "",
+    proof_objective: Annotated[str, Form()] = "",
     description: Annotated[str, Form()] = "",
 ) -> object:
     if case_type not in CASE_TYPES:
@@ -323,6 +363,7 @@ def create_case(
             "case_new.html",
             {
                 "case_types": CASE_TYPES,
+                "workspace_categories": WORKSPACE_CATEGORIES,
                 "error": "Choose a supported case type.",
                 "active": "cases",
                 "workspace": "evidence",
@@ -333,8 +374,10 @@ def create_case(
     case = Case(
         user_id=current_user.id,
         title=title.strip(),
+        workspace_category=category_for_template(case_type),
         case_type=case_type,
         petitioner_name=petitioner_name.strip(),
+        proof_objective=proof_objective.strip() or objective_for_template(case_type),
         description=description.strip(),
         status="Active",
     )
@@ -373,6 +416,18 @@ def case_detail(
         .first()
     )
     insight = latest_insight(db, case.id)
+    pending_candidate_count = (
+        db.query(func.count(EvidenceCandidate.id))
+        .filter(EvidenceCandidate.case_id == case.id, EvidenceCandidate.status == "Pending")
+        .scalar()
+        or 0
+    )
+    source_count = (
+        db.query(func.count(EvidenceSourcePermission.id))
+        .filter(EvidenceSourcePermission.case_id == case.id)
+        .scalar()
+        or 0
+    )
     evidence_count = db.query(func.count(EvidenceItem.id)).filter(EvidenceItem.case_id == case.id).scalar() or 0
     attached_count = (
         db.query(func.count(EvidenceItem.id))
@@ -391,11 +446,116 @@ def case_detail(
             "insight": insight,
             "evidence_count": evidence_count,
             "attached_count": attached_count,
+            "pending_candidate_count": pending_candidate_count,
+            "source_count": source_count,
             "active": "cases",
             "workspace": "evidence",
             "current_user": current_user,
         },
     )
+
+
+@app.get("/evidence/cases/{case_id}/sources")
+def source_center_page(
+    request: Request,
+    case_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    case = get_case_or_404(db, case_id, current_user)
+    permissions = (
+        db.query(EvidenceSourcePermission)
+        .filter(EvidenceSourcePermission.case_id == case.id)
+        .order_by(EvidenceSourcePermission.created_at.desc())
+        .all()
+    )
+    jobs = (
+        db.query(EvidenceDiscoveryJob)
+        .filter(EvidenceDiscoveryJob.case_id == case.id)
+        .order_by(EvidenceDiscoveryJob.created_at.desc())
+        .limit(8)
+        .all()
+    )
+    candidates = (
+        db.query(EvidenceCandidate)
+        .filter(EvidenceCandidate.case_id == case.id)
+        .order_by(EvidenceCandidate.status.asc(), EvidenceCandidate.confidence_score.desc())
+        .all()
+    )
+    return templates.TemplateResponse(
+        request,
+        "source_center.html",
+        {
+            "case": case,
+            "source_groups": EVIDENCE_SOURCE_GROUPS,
+            "permissions": permissions,
+            "jobs": jobs,
+            "candidates": candidates,
+            "active": "cases",
+            "workspace": "evidence",
+            "current_user": current_user,
+        },
+    )
+
+
+@app.post("/evidence/cases/{case_id}/sources/discover")
+def run_discovery(
+    case_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+    source_type: Annotated[str, Form()],
+    provider: Annotated[str, Form()],
+    scope: Annotated[str, Form()],
+    permission_note: Annotated[str, Form()] = "",
+) -> object:
+    case = get_case_or_404(db, case_id, current_user)
+    create_discovery_job(
+        db,
+        case,
+        source_type=source_type,
+        provider=provider,
+        scope=scope,
+        permission_note=permission_note,
+    )
+    return RedirectResponse(f"/evidence/cases/{case.id}/sources", status_code=303)
+
+
+@app.post("/evidence/cases/{case_id}/candidates/{candidate_id}/approve")
+def approve_evidence_candidate(
+    case_id: int,
+    candidate_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    case = get_case_or_404(db, case_id, current_user)
+    candidate = (
+        db.query(EvidenceCandidate)
+        .filter(EvidenceCandidate.case_id == case.id, EvidenceCandidate.id == candidate_id)
+        .first()
+    )
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    approve_candidate(db, case, candidate)
+    return RedirectResponse(f"/evidence/cases/{case.id}/sources", status_code=303)
+
+
+@app.post("/evidence/cases/{case_id}/candidates/{candidate_id}/reject")
+def reject_evidence_candidate(
+    case_id: int,
+    candidate_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    case = get_case_or_404(db, case_id, current_user)
+    candidate = (
+        db.query(EvidenceCandidate)
+        .filter(EvidenceCandidate.case_id == case.id, EvidenceCandidate.id == candidate_id)
+        .first()
+    )
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    reject_candidate(db, candidate)
+    return RedirectResponse(f"/evidence/cases/{case.id}/sources", status_code=303)
 
 
 @app.get("/evidence/cases/{case_id}/upload")
@@ -578,6 +738,30 @@ def insights_page(
         request,
         "insights.html",
         {"case": case, "insight": insight, "active": "cases", "workspace": "evidence", "current_user": current_user},
+    )
+
+
+@app.get("/evidence/cases/{case_id}/intelligence")
+def evidence_intelligence_page(
+    request: Request,
+    case_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    case = get_case_or_404(db, case_id, current_user)
+    insight = latest_insight(db, case.id) or analyze_case(db, case)
+    intelligence = build_case_intelligence(db, case, insight)
+    return templates.TemplateResponse(
+        request,
+        "intelligence.html",
+        {
+            "case": case,
+            "insight": insight,
+            "intelligence": intelligence,
+            "active": "cases",
+            "workspace": "evidence",
+            "current_user": current_user,
+        },
     )
 
 

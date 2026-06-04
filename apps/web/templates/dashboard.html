@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Dashboard | RoleAxis Evidence{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block title %}Evidence Intelligence | RoleAxis Evidence{% endblock %}
+{% block page_title %}Evidence Intelligence{% endblock %}
 {% block content %}
 <section class="metric-grid">
   <article class="metric-card">
@@ -12,8 +12,8 @@
     <strong>{{ evidence_count }}</strong>
   </article>
   <article class="metric-card">
-    <span>Packages Exported</span>
-    <strong>{{ export_count }}</strong>
+    <span>Evidence Inbox</span>
+    <strong>{{ candidate_count }}</strong>
   </article>
   <article class="metric-card accent">
     <span>Avg Readiness</span>
@@ -34,14 +34,15 @@
   {% for case in cases %}
   <article class="case-card">
     <div class="card-topline">
-      <span class="pill">{{ case.case_type }}</span>
+      <span class="pill">{{ case.workspace_category }} / {{ case.case_type }}</span>
       <span>{{ case.status }}</span>
     </div>
     <h3><a href="/evidence/cases/{{ case.id }}">{{ case.title }}</a></h3>
-    <p>{{ case.description or "No description yet." }}</p>
+    <p>{{ case.proof_objective or case.description or "No proof objective yet." }}</p>
     <div class="card-actions">
+      <a href="/evidence/cases/{{ case.id }}/sources">Sources</a>
       <a href="/evidence/cases/{{ case.id }}/upload">Upload</a>
-      <a href="/evidence/cases/{{ case.id }}/insights">Insights</a>
+      <a href="/evidence/cases/{{ case.id }}/intelligence">Intelligence</a>
       <a href="/evidence/cases/{{ case.id }}/export">Export</a>
     </div>
   </article>
@@ -50,10 +51,9 @@
 {% else %}
 <div class="empty-state">
   <span class="eyebrow">Start clean</span>
-  <h2>No cases yet</h2>
-  <p>Create the first case to begin uploading evidence, importing candidates, and preparing a package.</p>
-  <a class="button primary" href="/evidence/cases/create">Create Case</a>
+  <h2>No evidence workspaces yet</h2>
+  <p>Create the first evidence workspace to define what you need to prove, connect approved sources, review candidates, and prepare a package.</p>
+  <a class="button primary" href="/evidence/cases/create">Create Workspace</a>
 </div>
 {% endif %}
 {% endblock %}
-

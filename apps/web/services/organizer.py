@@ -8,16 +8,9 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from apps.web.models import Case, EvidenceImport, EvidenceItem
+from apps.web.services.evidence_framework import CASE_TYPES
 from apps.web.settings import AppSettings, get_settings
 
-
-CASE_TYPES = [
-    "NIW",
-    "EB-1A",
-    "O-1",
-    "Academic Promotion",
-    "Professional Portfolio",
-]
 
 EVIDENCE_CATEGORIES = [
     "Degrees",
@@ -61,6 +54,14 @@ KEYWORD_CATEGORIES: list[tuple[tuple[str, ...], str]] = [
     (("patent", "inventor", "provisional"), "Patents"),
     (("research", "grant", "study", "lab", "experiment"), "Research Evidence"),
 ]
+
+
+def category_letter(category: str) -> str:
+    try:
+        index = EVIDENCE_CATEGORIES.index(category)
+    except ValueError:
+        index = len(EVIDENCE_CATEGORIES) - 1
+    return chr(ord("A") + min(index, 25))
 
 
 def clean_display_text(value: str) -> str:
@@ -146,17 +147,19 @@ def assign_exhibit_numbers(db: Session, case: Case) -> None:
         .order_by(EvidenceItem.created_at.asc(), EvidenceItem.id.asc())
         .all()
     )
-    used_numbers = []
+    used_by_prefix: dict[str, int] = {}
     for item in items:
-        match = re.match(r"EX-(\d+)$", item.exhibit_number or "")
-        if match:
-            used_numbers.append(int(match.group(1)))
+        prefix = f"EXHIBIT_{category_letter(item.category)}"
+        match = re.search(r"(\d+)$", item.exhibit_number or "")
+        if item.exhibit_number and item.exhibit_number.startswith(prefix) and match:
+            used_by_prefix[prefix] = max(used_by_prefix.get(prefix, 0), int(match.group(1)))
 
-    next_number = max(used_numbers, default=0) + 1
     for item in items:
         if not item.exhibit_number:
-            item.exhibit_number = f"EX-{next_number:03d}"
-            next_number += 1
+            prefix = f"EXHIBIT_{category_letter(item.category)}"
+            next_number = used_by_prefix.get(prefix, 0) + 1
+            item.exhibit_number = f"{prefix}{next_number:03d}"
+            used_by_prefix[prefix] = next_number
         item.renamed_filename = build_renamed_filename(item)
     db.flush()
 
@@ -190,6 +193,8 @@ def save_uploaded_evidence(
         category=selected_category,
         source=source or "Upload",
         file_path=str(destination),
+        confidence_score=100,
+        relevance_score=78 if selected_category == "Other Supporting Evidence" else 86,
         description=clean_display_text(description or ""),
         relevance_notes=clean_display_text(relevance_notes or ""),
         status="Cataloged",
@@ -252,6 +257,8 @@ def import_document_organizer_candidates(db: Session, case: Case) -> EvidenceImp
                 category=infer_category(title, section_title),
                 source="Document Organizer",
                 file_path="",
+                confidence_score=76,
+                relevance_score=74,
                 description=f"Imported from organizer section: {section_title}",
                 relevance_notes="Candidate imported from the existing exhibit organizer configuration.",
                 status="Candidate",

@@ -9,6 +9,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from apps.web.models import Case, CaseInsight, EvidenceItem, ExportPackage
+from apps.web.services.discovery import build_case_intelligence
 from apps.web.services.insights import analyze_case, parse_json_list
 from apps.web.services.organizer import assign_exhibit_numbers, safe_filename
 from apps.web.settings import AppSettings, get_settings
@@ -34,6 +35,9 @@ def _evidence_table_csv(items: list[EvidenceItem]) -> str:
             "Original Filename",
             "Renamed Filename",
             "Status",
+            "Evidence Date",
+            "Confidence Score",
+            "Relevance Score",
             "Description",
             "Relevance Notes",
         ]
@@ -48,6 +52,9 @@ def _evidence_table_csv(items: list[EvidenceItem]) -> str:
                 item.original_filename,
                 item.renamed_filename,
                 item.status,
+                item.evidence_date,
+                item.confidence_score,
+                item.relevance_score,
                 item.description,
                 item.relevance_notes,
             ]
@@ -71,7 +78,9 @@ def _case_summary(case: Case, items: list[EvidenceItem]) -> str:
     lines = [
         f"# Case Summary: {case.title}",
         "",
+        f"- Workspace category: {case.workspace_category}",
         f"- Case type: {case.case_type}",
+        f"- Proof objective: {case.proof_objective or 'Not provided'}",
         f"- Petitioner: {case.petitioner_name or 'Not provided'}",
         f"- Status: {case.status}",
         f"- Evidence items: {len(items)}",
@@ -102,6 +111,36 @@ def _insights_markdown(insight: CaseInsight) -> str:
     return "\n".join(lines)
 
 
+def _timeline_markdown(intelligence: dict[str, object]) -> str:
+    lines = ["# Professional Timeline", ""]
+    timeline = intelligence.get("timeline", [])
+    if timeline:
+        for item in timeline:
+            lines.append(f"- **{item['year']}** - {item['title']} ({item['category']}, {item['exhibit']})")
+    else:
+        lines.append("- No timeline evidence has been approved yet.")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _roadmap_markdown(intelligence: dict[str, object]) -> str:
+    lines = [
+        "# Case Readiness Roadmap",
+        "",
+        f"Current score: {intelligence.get('score', 0)}/100",
+        f"Target score: {intelligence.get('target_score', 90)}/100",
+        "",
+    ]
+    roadmap = intelligence.get("roadmap", [])
+    if roadmap:
+        for index, step in enumerate(roadmap, start=1):
+            lines.append(f"{index}. {step}")
+    else:
+        lines.append("1. Run final reviewer mode before export.")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def build_export_package(db: Session, case: Case) -> ExportPackage:
     settings: AppSettings = get_settings()
     assign_exhibit_numbers(db, case)
@@ -121,6 +160,7 @@ def build_export_package(db: Session, case: Case) -> ExportPackage:
     )
     if insight is None:
         insight = analyze_case(db, case)
+    intelligence = build_case_intelligence(db, case, insight)
 
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     case_slug = safe_filename(case.title, "case")
@@ -135,6 +175,8 @@ def build_export_package(db: Session, case: Case) -> ExportPackage:
         package.writestr("evidence_index.md", _evidence_index(case, items))
         package.writestr("case_summary.md", _case_summary(case, items))
         package.writestr("readiness_insights.md", _insights_markdown(insight))
+        package.writestr("professional_timeline.md", _timeline_markdown(intelligence))
+        package.writestr("case_readiness_roadmap.md", _roadmap_markdown(intelligence))
 
         for item in items:
             if not item.file_path:

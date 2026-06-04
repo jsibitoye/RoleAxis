@@ -6,7 +6,7 @@ RoleAxis is a premium professional intelligence SaaS platform for people and org
 
 ## Workspaces
 
-- **RoleAxis Evidence**: evidence cases, uploads, exhibit ordering, readiness insights, and export packages.
+- **RoleAxis Evidence**: evidence workspaces, permissioned source discovery, Evidence Inbox review, exhibit ordering, readiness strategy, and export packages.
 - **RoleAxis Career**: interview assistance, presentation coaching, meeting support, job search, resume analysis, and shared Career AI Core.
 - **RoleAxis Vault**: profile, resume, certifications, degrees, projects, publications, awards, achievements, and reusable professional records.
 
@@ -20,22 +20,38 @@ RoleAxis is a premium professional intelligence SaaS platform for people and org
 
 ## Evidence Core Workflows
 
-1. Create a case workspace.
-2. Upload evidence documents.
-3. Import candidates from the document organizer.
-4. Import safe candidate summaries from the email crawler.
-5. Categorize evidence.
-6. Generate exhibit numbers and professional filenames.
-7. Generate readiness insights.
-8. Export an attorney-ready ZIP package.
+1. Create an objective-first evidence workspace.
+2. Choose a workspace category and template.
+3. Define what the user is trying to prove.
+4. Authorize source discovery by source type, provider, and scope.
+5. Review discovery candidates in the Evidence Inbox.
+6. Accept or reject candidates before they become evidence.
+7. Upload evidence documents manually.
+8. Import candidates from the document organizer and email crawler.
+9. Categorize evidence and generate `EXHIBIT_A001`-style exhibit numbers.
+10. Generate readiness insights and Evidence Intelligence.
+11. Export an attorney-ready ZIP package with roadmap and timeline artifacts.
 
-## Supported Evidence Case Types
+## Evidence Workspace Categories
 
-- NIW
-- EB-1A
-- O-1
-- Academic Promotion
-- Professional Portfolio
+- Immigration: NIW, EB-1A, O-1, H-1B Support, PERM Support, Naturalization Support, Family Immigration Support
+- Career: Promotion Package, Executive Portfolio, Internal Transfer, Job Application Portfolio, Consulting Portfolio
+- Academic: Academic Promotion, Tenure Package, Research Portfolio, Grant Application, Funding Application
+- Business: Startup Founder Portfolio, Investor Due Diligence, Business Acquisition Package, Vendor Qualification Package, Contract Proposal Package
+- Legal: Litigation Package, Investigation Package, Insurance Claim Package, Regulatory Compliance Package, Audit Package
+- Custom: Custom Evidence Workspace
+
+## Evidence Intelligence
+
+- Readiness score from 0 to 100
+- Gap analysis against workspace requirements
+- Case readiness roadmap with target score
+- Evidence discovery missions
+- Professional timeline
+- Achievement graph
+- Evidence relationship map
+- Professional reputation score
+- AI case reviewer concerns
 
 ## Career Core Modules
 
@@ -63,5 +79,6 @@ RoleAxis is a premium professional intelligence SaaS platform for people and org
 - Cloud object storage
 - Email verification and account recovery
 - Live email OAuth setup inside the web UI
+- Real external source scanning without explicit connector authorization
 - Attorney e-signature workflows
 - Multi-organization team administration
