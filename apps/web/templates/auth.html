@@ -47,8 +47,12 @@
       </label>
       {% endif %}
       <label>
-        Email
+        {{ "Email" if is_register else "Email or username" }}
+        {% if is_register %}
         <input name="email" type="email" autocomplete="email" required value="{{ form.email if form else '' }}">
+        {% else %}
+        <input name="email" type="text" autocomplete="username" required value="{{ form.email if form else '' }}">
+        {% endif %}
       </label>
       <label>
         Password
