@@ -29,7 +29,10 @@
 - Reviewer concerns
 - ZIP package export
 - RoleAxis Career shell
-- Integrated Windows Interview Assistant source and build flow
+- Web-native Interview Assistant sessions
+- Browser transcript capture with manual fallback
+- Server-side interview answer coaching
+- Legacy Windows Interview Assistant source and build flow
 - RoleAxis Vault shell
 
 ## Next
@@ -46,7 +49,9 @@
 - Real connector-backed discovery jobs
 - Reputation scanner using public sources
 - Career AI Core service extraction
-- Interview Assistant installer release workflow
+- Streaming interview responses
+- Browser WebRTC realtime interview mode
+- Interview Assistant installer release workflow for local/enterprise desktop use
 - Vault profile and document models
 
 ## Later

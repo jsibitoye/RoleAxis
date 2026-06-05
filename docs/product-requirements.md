@@ -55,7 +55,7 @@ RoleAxis is a premium professional intelligence SaaS platform for people and org
 
 ## Career Core Modules
 
-- Interview Assistant
+- Interview Assistant: browser-based interview rooms, transcript capture, resume/job context, answer modes, per-user answer history, and server-side AI coaching
 - Presentation Assistant
 - Meeting Assistant
 - Job Search
@@ -82,3 +82,4 @@ RoleAxis is a premium professional intelligence SaaS platform for people and org
 - Real external source scanning without explicit connector authorization
 - Attorney e-signature workflows
 - Multi-organization team administration
+- Native desktop dependency for SaaS interview workflows

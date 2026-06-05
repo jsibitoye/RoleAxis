@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
@@ -20,6 +21,8 @@ from apps.web.models import (
     EvidenceItem,
     EvidenceSourcePermission,
     ExportPackage,
+    InterviewSession,
+    InterviewTurn,
     User,
 )
 from apps.web.services.auth import (
@@ -44,6 +47,14 @@ from apps.web.services.evidence_framework import (
 )
 from apps.web.services.exporter import build_export_package
 from apps.web.services.insights import analyze_case, parse_json_list
+from apps.web.services.interview import (
+    ANSWER_MODES,
+    INTERVIEW_TYPES,
+    create_interview_session,
+    generate_interview_answer,
+    get_interview_session_or_404,
+    record_interview_turn,
+)
 from apps.web.services.organizer import (
     CASE_TYPES,
     EVIDENCE_CATEGORIES,
@@ -817,8 +828,8 @@ def career_dashboard(
         {
             "name": "Interview Assistant",
             "href": "/career/interview-assistant",
-            "status": "Desktop app ready",
-            "description": "Realtime interview transcription and answer assistance with resume and job-description context.",
+            "status": "Web app ready",
+            "description": "Browser-based live interview room with transcript capture and answer coaching.",
         },
         {
             "name": "Presentation Assistant",
@@ -855,13 +866,124 @@ def career_dashboard(
 @app.get("/career/interview-assistant")
 def interview_assistant_page(
     request: Request,
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_user)],
 ) -> object:
     status = get_interview_assistant_status()
+    sessions = (
+        db.query(InterviewSession)
+        .filter(InterviewSession.user_id == current_user.id)
+        .order_by(InterviewSession.updated_at.desc())
+        .limit(8)
+        .all()
+    )
     return templates.TemplateResponse(
         request,
         "interview_assistant.html",
-        {"status": status, "active": "career", "workspace": "career", "current_user": current_user},
+        {
+            "status": status,
+            "sessions": sessions,
+            "interview_types": INTERVIEW_TYPES,
+            "api_enabled": bool(settings.openai_api_key),
+            "active": "career",
+            "workspace": "career",
+            "current_user": current_user,
+        },
+    )
+
+
+@app.post("/career/interview-assistant/sessions")
+def create_web_interview_session(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+    title: Annotated[str, Form()] = "",
+    target_role: Annotated[str, Form()] = "",
+    company_name: Annotated[str, Form()] = "",
+    interview_type: Annotated[str, Form()] = "Behavioral",
+    resume_context: Annotated[str, Form()] = "",
+    job_description: Annotated[str, Form()] = "",
+) -> object:
+    session = create_interview_session(
+        db,
+        user_id=current_user.id,
+        title=title,
+        target_role=target_role,
+        company_name=company_name,
+        interview_type=interview_type,
+        resume_context=resume_context,
+        job_description=job_description,
+    )
+    return RedirectResponse(f"/career/interview-assistant/sessions/{session.id}", status_code=303)
+
+
+@app.get("/career/interview-assistant/sessions/{session_id}")
+def web_interview_room(
+    request: Request,
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    session = get_interview_session_or_404(db, session_id, current_user.id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Interview session not found")
+    turns = (
+        db.query(InterviewTurn)
+        .filter(InterviewTurn.session_id == session.id, InterviewTurn.user_id == current_user.id)
+        .order_by(InterviewTurn.created_at.desc())
+        .limit(12)
+        .all()
+    )
+    return templates.TemplateResponse(
+        request,
+        "interview_room.html",
+        {
+            "session": session,
+            "turns": turns,
+            "answer_modes": ANSWER_MODES,
+            "api_enabled": bool(settings.openai_api_key),
+            "active": "career",
+            "workspace": "career",
+            "current_user": current_user,
+        },
+    )
+
+
+@app.post("/career/interview-assistant/sessions/{session_id}/ask")
+async def ask_web_interview_assistant(
+    request: Request,
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    session = get_interview_session_or_404(db, session_id, current_user.id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Interview session not found")
+    try:
+        payload = await request.json()
+    except json.JSONDecodeError:
+        payload = {}
+    question = str(payload.get("question") or "").strip()
+    transcript = str(payload.get("transcript") or "").strip()
+    mode = str(payload.get("mode") or "Concise").strip()
+    if not question and not transcript:
+        return JSONResponse({"error": "Add a question or transcript first."}, status_code=400)
+    answer = generate_interview_answer(session, question, transcript, mode)
+    turn = record_interview_turn(
+        db,
+        session=session,
+        user_id=current_user.id,
+        question=question,
+        transcript=transcript,
+        mode=mode,
+        answer=answer.answer,
+    )
+    return JSONResponse(
+        {
+            "answer": answer.answer,
+            "used_ai": answer.used_ai,
+            "turn_id": turn.id,
+            "created_at": turn.created_at.isoformat(),
+        }
     )
 
 

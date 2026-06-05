@@ -161,6 +161,40 @@ class CaseInsight(Base):
     case: Mapped[Case] = relationship(back_populates="insights")
 
 
+class InterviewSession(Base):
+    __tablename__ = "interview_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    target_role: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    company_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    interview_type: Mapped[str] = mapped_column(String(120), nullable=False, default="Behavioral")
+    resume_context: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    job_description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(80), nullable=False, default="Active")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=utcnow,
+        onupdate=utcnow,
+        nullable=False,
+    )
+
+
+class InterviewTurn(Base):
+    __tablename__ = "interview_turns"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("interview_sessions.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    mode: Mapped[str] = mapped_column(String(120), nullable=False, default="Concise")
+    question: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    transcript_excerpt: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+
+
 class EvidenceSourcePermission(Base):
     __tablename__ = "evidence_source_permissions"
 

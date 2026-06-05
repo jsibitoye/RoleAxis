@@ -6,7 +6,7 @@ RoleAxis is a professional intelligence SaaS platform with three workspaces:
 - **RoleAxis Career**: interview, presentation, meeting, job-search, and resume intelligence.
 - **RoleAxis Vault**: canonical professional profile, credentials, achievements, and document memory.
 
-The current web app ships the full account flow, `/app` launcher, a working Evidence workspace, and an integrated Career Interview Assistant service.
+The current web app ships the full account flow, `/app` launcher, a working Evidence workspace, a web-native Career Interview Assistant, and the legacy Windows assistant source.
 
 ## Run Locally
 
@@ -28,6 +28,7 @@ Open <http://127.0.0.1:8000>.
 - Evidence: <http://127.0.0.1:8000/evidence>
 - Evidence workspace create: <http://127.0.0.1:8000/evidence/cases/create>
 - Career: <http://127.0.0.1:8000/career>
+- Web Interview Assistant: <http://127.0.0.1:8000/career/interview-assistant>
 - Vault: <http://127.0.0.1:8000/vault>
 
 ## What Works Now
@@ -46,18 +47,30 @@ Open <http://127.0.0.1:8000>.
 - Generate readiness insights using rule-based scoring.
 - Open Evidence Intelligence for gap analysis, roadmap, discovery missions, professional timeline, achievement graph, relationship map, reputation score, and reviewer concerns.
 - Export an attorney-ready ZIP with organized folders, evidence table, evidence index, case summary, readiness insights, professional timeline, and case readiness roadmap.
-- Open RoleAxis Career and verify the integrated Interview Assistant source/build status.
+- Open RoleAxis Career and run browser-based Interview Assistant sessions.
+- Use manual transcript or browser microphone capture, then ask the server-side assistant for answer coaching.
+- Store per-user interview rooms and answer history.
+- Use `OPENAI_API_KEY` on the server for model-backed answers, with a local fallback for development.
 - Open RoleAxis Vault module placeholders for profile, resume, credentials, projects, publications, awards, and achievements.
 
 ## Interview Assistant
 
-The existing Windows desktop assistant lives at `services/career/interview-assistant/`.
+The SaaS Interview Assistant runs from `/career/interview-assistant`. Create a web interview room, paste resume/job context, capture or type the interviewer question, and ask for coaching.
+
+For model-backed answers, set a server-side key before starting FastAPI:
+
+```powershell
+$env:OPENAI_API_KEY = "sk-..."
+$env:ROLEAXIS_INTERVIEW_MODEL = "gpt-4o-mini"
+```
+
+The original Windows desktop assistant remains at `services/career/interview-assistant/` as a legacy local artifact:
 
 ```powershell
 dotnet build services\career\interview-assistant\RoleAxis.InterviewAssistant.csproj --configuration Release
 ```
 
-For local development, set `OPENAI_API_KEY` or copy `config.example.json` to an ignored local `config.json`. Do not commit real API keys.
+Do not commit real API keys.
 
 ## Project Layout
 

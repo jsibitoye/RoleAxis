@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ session.title }} | RoleAxis Interview Assistant{% endblock %}
+{% block page_eyebrow %}RoleAxis Career{% endblock %}
+{% block page_title %}Interview Room{% endblock %}
+{% block content %}
+<section class="interview-room" data-session-id="{{ session.id }}">
+  <div class="interview-main">
+    <section class="case-hero-panel">
+      <div>
+        <span class="pill">{{ session.interview_type }}</span>
+        <h2>{{ session.title }}</h2>
+        <p>{{ session.target_role or "Target role not set" }}{% if session.company_name %} at {{ session.company_name }}{% endif %}</p>
+      </div>
+      <div class="score-tile">
+        <span>Engine</span>
+        <strong>{{ "AI" if api_enabled else "Local" }}</strong>
+        <small>Server-side coaching</small>
+      </div>
+    </section>
+
+    <section class="interview-console">
+      <div class="console-panel">
+        <div class="section-header compact">
+          <div>
+            <span class="eyebrow">Live transcript</span>
+            <h2>Question capture</h2>
+          </div>
+          <div class="button-row">
+            <button class="button secondary" type="button" id="startListening">Start Mic</button>
+            <button class="button secondary" type="button" id="stopListening">Stop</button>
+            <button class="button secondary" type="button" id="clearTranscript">Clear</button>
+          </div>
+        </div>
+        <label>
+          Transcript or interviewer question
+          <textarea id="transcriptBox" rows="12" placeholder="Use the microphone button if supported by your browser, or type/paste the interviewer question here."></textarea>
+        </label>
+        <small id="speechStatus" class="muted">Browser speech capture is optional. Manual typing always works.</small>
+      </div>
+
+      <div class="console-panel">
+        <div class="section-header compact">
+          <div>
+            <span class="eyebrow">Answer coaching</span>
+            <h2>RoleAxis response</h2>
+          </div>
+        </div>
+        <div class="form-grid">
+          <label>
+            Answer mode
+            <select id="answerMode">
+              {% for mode in answer_modes %}
+              <option value="{{ mode }}">{{ mode }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            Short question
+            <input id="questionBox" placeholder="Optional: What is the exact question?">
+          </label>
+        </div>
+        <button class="button primary full" type="button" id="askAssistant">Ask Interview Assistant</button>
+        <div class="answer-surface" id="answerSurface">
+          <span class="eyebrow">Waiting</span>
+          <p>Capture or paste a question, then ask RoleAxis for a response you can say out loud.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="interview-side">
+    <article class="setting-panel">
+      <span class="eyebrow">Candidate context</span>
+      <h2>Session brief</h2>
+      <p><strong>Role:</strong> {{ session.target_role or "Not set" }}</p>
+      <p><strong>Company:</strong> {{ session.company_name or "Not set" }}</p>
+      <p><strong>Resume context:</strong> {{ session.resume_context[:220] if session.resume_context else "Not provided" }}</p>
+      <p><strong>Job description:</strong> {{ session.job_description[:220] if session.job_description else "Not provided" }}</p>
+    </article>
+
+    <article class="setting-panel">
+      <span class="eyebrow">Recent coaching</span>
+      <h2>Answer history</h2>
+      {% if turns %}
+      <div class="mini-list embedded" id="turnHistory">
+        {% for turn in turns %}
+        <article>
+          <span class="pill">{{ turn.mode }}</span>
+          <div>
+            <strong>{{ turn.question[:90] if turn.question else "Transcript coaching" }}</strong>
+            <small>{{ turn.created_at.strftime("%b %d, %I:%M %p") }}</small>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="muted">No answer history yet.</p>
+      {% endif %}
+    </article>
+  </aside>
+</section>
+<script src="{{ url_for('static', path='/js/interview-assistant.js') }}"></script>
+{% endblock %}

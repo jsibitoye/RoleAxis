@@ -15,7 +15,8 @@ RoleAxis is a modular SaaS platform with a FastAPI web app and service boundarie
 - `apps/web/services/email_importer.py`: safe adapter for email crawler report artifacts.
 - `apps/web/services/insights.py`: current rule-based case readiness scoring.
 - `apps/web/services/exporter.py`: current ZIP package generation.
-- `apps/web/services/career.py`: Career service status adapters, starting with Interview Assistant.
+- `apps/web/services/career.py`: legacy desktop Interview Assistant status adapter.
+- `apps/web/services/interview.py`: web Interview Assistant sessions, server-side answer generation, OpenAI Responses API integration, and local fallback coaching.
 
 ## Service Boundaries
 
@@ -40,7 +41,7 @@ services/vault/
   achievement-tracker/
 ```
 
-The Evidence workspace is live in the web app. The Career Interview Assistant is integrated as a Windows desktop service and build artifact. The remaining service folders define the planned platform ownership boundaries.
+The Evidence workspace is live in the web app. The Career Interview Assistant now runs as a browser-based SaaS interview room, while the Windows desktop assistant remains as a legacy/local service artifact. The remaining service folders define the planned platform ownership boundaries.
 
 ## Data Model
 
@@ -54,6 +55,8 @@ The Evidence workspace is live in the web app. The Career Interview Assistant is
 - `EvidenceImport`: audit row for organizer and crawler imports.
 - `ExportPackage`: generated ZIP package metadata.
 - `CaseInsight`: readiness score and structured recommendations.
+- `InterviewSession`: per-user browser interview room with role, company, interview type, resume context, and job description.
+- `InterviewTurn`: per-user answer coaching history for each interview session.
 
 ## Security
 
@@ -66,6 +69,8 @@ The Evidence workspace is live in the web app. The Career Interview Assistant is
 - Case files are written under isolated case folders.
 - `.env`, uploads, exports, logs, virtual environments, local databases, desktop build outputs, and local API-key config files are ignored.
 - Email imports use existing report artifacts and do not write email bodies to application logs.
+- Interview API keys stay server-side in environment variables and are never sent to the browser.
+- Browser speech capture is optional and user-permissioned; manual transcript entry remains available.
 
 ## PostgreSQL Path
 
