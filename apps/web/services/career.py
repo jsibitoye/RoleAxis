@@ -13,6 +13,8 @@ class InterviewAssistantStatus:
     config_example: Path
     release_dir: Path
     installer_dir: Path
+    installer_file: Path | None
+    installer_filename: str
     source_exists: bool
     project_exists: bool
     config_example_exists: bool
@@ -27,7 +29,12 @@ def get_interview_assistant_status() -> InterviewAssistantStatus:
     config_example = service_dir / "config.example.json"
     release_dir = service_dir / "bin" / "Release" / "net8.0-windows"
     installer_dir = service_dir / "installer-output"
-    installer_exists = installer_dir.exists() and any(installer_dir.glob("*.exe"))
+    installer_file = (
+        next(iter(sorted(installer_dir.glob("*.exe"), key=lambda path: path.stat().st_mtime, reverse=True)), None)
+        if installer_dir.exists()
+        else None
+    )
+    installer_exists = installer_file is not None
 
     return InterviewAssistantStatus(
         service_dir=service_dir,
@@ -35,6 +42,8 @@ def get_interview_assistant_status() -> InterviewAssistantStatus:
         config_example=config_example,
         release_dir=release_dir,
         installer_dir=installer_dir,
+        installer_file=installer_file,
+        installer_filename=installer_file.name if installer_file else "RoleAxis-Desktop-Setup.exe",
         source_exists=(service_dir / "Program.cs").exists(),
         project_exists=project_file.exists(),
         config_example_exists=config_example.exists(),

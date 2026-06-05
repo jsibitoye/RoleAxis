@@ -9,6 +9,7 @@ using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -26,6 +27,12 @@ class Config
     public string apiKey { get; set; } = "";
 }
 
+public enum LiveAssistMode
+{
+    Interview,
+    Meeting
+}
+
 
 internal static class Program
 {
@@ -33,7 +40,7 @@ internal static class Program
     private static void Main()
     {
         ApplicationConfiguration.Initialize();
-        Application.Run(new AssistantForm());
+        Application.Run(new RoleAxisDesktopAppForm());
     }
 }
 
@@ -51,8 +58,31 @@ public sealed class AssistantForm : Form
     // Better production setup: leave this empty and use config.json beside the EXE.
     private const string HardcodedApiKey = "";
 
+    private static readonly Color ShellBack = Color.FromArgb(228, 242, 252);
+    private static readonly Color Surface = Color.FromArgb(238, 248, 255);
+    private static readonly Color Surface2 = Color.FromArgb(222, 238, 250);
+    private static readonly Color Stroke = Color.FromArgb(200, 219, 233);
+    private static readonly Color Ink = Color.FromArgb(14, 20, 34);
+    private static readonly Color SoftText = Color.FromArgb(92, 112, 132);
+    private static readonly Color Accent = Color.FromArgb(14, 160, 201);
+    private static readonly Color AccentDark = Color.FromArgb(7, 18, 24);
+    private static readonly Color Success = Color.FromArgb(18, 184, 125);
+    private static readonly Color Danger = Color.FromArgb(143, 45, 45);
+    private static readonly string[] AnswerKeywordHints =
+    {
+        "impact", "metric", "result", "priority", "risk", "decision", "owner", "deadline", "constraint", "tradeoff",
+        "customer", "revenue", "cost", "security", "compliance", "architecture", "scale", "latency", "quality",
+        "stakeholder", "clarify", "recommendation", "next step", "action item", "evidence", "example", "STAR",
+        "situation", "task", "action", "outcome", "timeline", "scope", "root cause", "automation", "leadership"
+    };
+
     private readonly TextBox _resumeBox = new();
     private readonly TextBox _jdBox = new();
+    private readonly TextBox _meetingTitleBox = new();
+    private readonly TextBox _meetingParticipantsBox = new();
+    private readonly TextBox _meetingAgendaBox = new();
+    private readonly ComboBox _meetingTypeCombo = new();
+    private readonly ComboBox _meetingRoleCombo = new();
     private readonly RichTextBox _transcriptBox = new();
     private readonly RichTextBox _answerBox = new();
 
@@ -69,6 +99,11 @@ public sealed class AssistantForm : Form
     private readonly Button _askButton = new();
     private readonly Button _clearTranscriptButton = new();
     private readonly Button _clearAnswersButton = new();
+    private readonly Button _meetingSummaryButton = new();
+    private readonly Button _meetingDecisionsButton = new();
+    private readonly Button _meetingActionsButton = new();
+    private readonly Button _meetingEmailButton = new();
+    private readonly Button _meetingSaveButton = new();
 
     private readonly CheckBox _autoAskCheck = new();
     private readonly CheckBox _topMostCheck = new();
@@ -102,14 +137,31 @@ public sealed class AssistantForm : Form
 
     private readonly List<string> _internalLog = new();
 
-    public AssistantForm()
+    private readonly bool _embedded;
+    private readonly LiveAssistMode _mode;
+    private TableLayoutPanel? _rootLayout;
+    private Control? _contextCard;
+    private Control? _controlsCard;
+    private RowStyle? _contextRowStyle;
+    private RowStyle? _controlsRowStyle;
+
+    public AssistantForm() : this(false)
     {
-        Text = "RoleAxis Career Interview Assistant";
+    }
+
+    public AssistantForm(bool embedded, LiveAssistMode mode = LiveAssistMode.Interview)
+    {
+        _embedded = embedded;
+        _mode = mode;
+        Text = mode == LiveAssistMode.Meeting
+            ? "RoleAxis Meeting Assistant"
+            : "RoleAxis Career Interview Assistant";
         Width = 1280;
         Height = 860;
-        MinimumSize = new Size(1100, 740);
+        MinimumSize = embedded ? new Size(900, 620) : new Size(1100, 740);
         StartPosition = FormStartPosition.CenterScreen;
-        TopMost = true;
+        TopMost = !embedded;
+        ShowInTaskbar = !embedded;
         Font = new Font("Segoe UI", 9.5f);
         DoubleBuffered = true;
 
@@ -121,7 +173,9 @@ public sealed class AssistantForm : Form
         if (string.IsNullOrWhiteSpace(_apiKey))
             SetStatus("Missing API key. Add config.json beside the EXE or set OPENAI_API_KEY.");
         else
-            SetStatus("Ready. Load resume/JD, select output device, then Start Realtime.");
+            SetStatus(mode == LiveAssistMode.Meeting
+                ? "Ready. Add meeting context, select audio source, then Start Live Meeting."
+                : "Ready. Load resume/JD, select output device, then Start Realtime.");
     }
 
     private static string LoadApiKey()
@@ -175,7 +229,7 @@ public sealed class AssistantForm : Form
 
     private void BuildUi()
     {
-        BackColor = Color.FromArgb(10, 15, 28);
+        BackColor = ShellBack;
 
         var root = new TableLayoutPanel
         {
@@ -183,14 +237,17 @@ public sealed class AssistantForm : Form
             RowCount = 5,
             ColumnCount = 1,
             Padding = new Padding(18),
-            BackColor = Color.FromArgb(10, 15, 28)
+            BackColor = ShellBack
         };
 
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 190));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 170));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 84));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, _mode == LiveAssistMode.Meeting ? 225 : 190));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, _mode == LiveAssistMode.Meeting ? 210 : 170));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        _rootLayout = root;
+        _contextRowStyle = root.RowStyles[1];
+        _controlsRowStyle = root.RowStyles[2];
 
         // =========================
         // HEADER
@@ -199,7 +256,7 @@ public sealed class AssistantForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            BackColor = Color.FromArgb(10, 15, 28),
+            BackColor = ShellBack,
             Padding = new Padding(0, 0, 0, 8)
         };
 
@@ -210,7 +267,8 @@ public sealed class AssistantForm : Form
         {
             Dock = DockStyle.Fill,
             RowCount = 2,
-            ColumnCount = 1
+            ColumnCount = 1,
+            BackColor = ShellBack
         };
 
         titleStack.RowStyles.Add(new RowStyle(SizeType.Percent, 30));
@@ -218,26 +276,60 @@ public sealed class AssistantForm : Form
 
         var title = new Label
         {
-            Text = "RoleAxis Interview Assistant",
+            Text = _mode == LiveAssistMode.Meeting
+                ? "RoleAxis Meeting Assistant"
+                : "RoleAxis Interview Assistant",
             Dock = DockStyle.Fill,
             Font = new Font("Segoe UI Semibold", 19f, FontStyle.Bold),
-            ForeColor = Color.White,
+            ForeColor = Ink,
             TextAlign = ContentAlignment.BottomLeft
         };
 
         _statusLabel.Dock = DockStyle.Fill;
         _statusLabel.TextAlign = ContentAlignment.TopLeft;
         _statusLabel.Font = new Font("Segoe UI", 10f);
-        _statusLabel.ForeColor = Color.FromArgb(148, 163, 184);
+        _statusLabel.ForeColor = SoftText;
 
         titleStack.Controls.Add(title, 0, 0);
         titleStack.Controls.Add(_statusLabel, 0, 1);
+
+        var rightStack = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 2,
+            ColumnCount = 1,
+            BackColor = ShellBack
+        };
+        rightStack.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        rightStack.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var actionRow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
+            BackColor = ShellBack
+        };
+
+        StyleButton(_askButton, "Ask GPT Now", ButtonStyle.Accent, 135);
+        _askButton.Click += async (_, _) => await AskGptForTextAsync(GetManualPromptText(), "MANUAL");
+        actionRow.Controls.Add(_askButton);
+
+        StyleButton(_stopButton, "Stop", ButtonStyle.Danger, 90);
+        _stopButton.Enabled = false;
+        _stopButton.Click += (_, _) => StopAll();
+        actionRow.Controls.Add(_stopButton);
+
+        StyleButton(_startButton, _mode == LiveAssistMode.Meeting ? "Start Live Meeting" : "Start Realtime", ButtonStyle.Primary, _mode == LiveAssistMode.Meeting ? 165 : 145);
+        _startButton.Click += async (_, _) => await StartAsync();
+        actionRow.Controls.Add(_startButton);
 
         var metricsStack = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             RowCount = 2,
-            ColumnCount = 1
+            ColumnCount = 1,
+            BackColor = ShellBack
         };
 
         metricsStack.RowStyles.Add(new RowStyle(SizeType.Percent, 30));
@@ -249,117 +341,62 @@ public sealed class AssistantForm : Form
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.BottomRight,
             Font = new Font("Segoe UI Semibold", 10f),
-            ForeColor = Color.FromArgb(34, 197, 94)
+            ForeColor = Success
         };
 
         _audioLabel.Dock = DockStyle.Fill;
         _audioLabel.TextAlign = ContentAlignment.TopRight;
         _audioLabel.Font = new Font("Consolas", 9.5f);
-        _audioLabel.ForeColor = Color.FromArgb(148, 163, 184);
+        _audioLabel.ForeColor = SoftText;
 
         metricsStack.Controls.Add(liveBadge, 0, 0);
         metricsStack.Controls.Add(_audioLabel, 0, 1);
+        rightStack.Controls.Add(actionRow, 0, 0);
+        rightStack.Controls.Add(metricsStack, 0, 1);
 
         header.Controls.Add(titleStack, 0, 0);
-        header.Controls.Add(metricsStack, 1, 0);
+        header.Controls.Add(rightStack, 1, 0);
         root.Controls.Add(header, 0, 0);
 
         // =========================
         // CONTEXT CARD
         // =========================
-        var contextCard = CreateCard("Context", Color.FromArgb(17, 24, 39));
+        var contextCard = CreateCard(_mode == LiveAssistMode.Meeting ? "Meeting Context" : "Context", Surface);
 
-        var context = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            RowCount = 2,
-            ColumnCount = 2,
-            Padding = new Padding(16, 20, 16, 16),
-            BackColor = Color.FromArgb(17, 24, 39)
-        };
-
-        context.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        context.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-        context.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        context.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-
-        var resumeHeader = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
-            BackColor = Color.FromArgb(17, 24, 39)
-        };
-
-        resumeHeader.Controls.Add(new Label
-        {
-            Text = "Resume / Candidate Context",
-            AutoSize = true,
-            Padding = new Padding(0, 8, 12, 0),
-            Font = new Font("Segoe UI Semibold", 10f),
-            ForeColor = Color.FromArgb(226, 232, 240)
-        });
-
-        StyleButton(_browseResumeButton, "Browse Resume", ButtonStyle.Secondary, 145);
-        _browseResumeButton.Click += (_, _) => PickResumeFile();
-        resumeHeader.Controls.Add(_browseResumeButton);
-
-        var jdHeader = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
-            BackColor = Color.FromArgb(17, 24, 39)
-        };
-
-        jdHeader.Controls.Add(new Label
-        {
-            Text = "Job Description",
-            AutoSize = true,
-            Padding = new Padding(0, 8, 12, 0),
-            Font = new Font("Segoe UI Semibold", 10f),
-            ForeColor = Color.FromArgb(226, 232, 240)
-        });
-
-        StyleButton(_browseJdButton, "Browse JD", ButtonStyle.Secondary, 120);
-        _browseJdButton.Click += (_, _) => PickJdFile();
-        jdHeader.Controls.Add(_browseJdButton);
-
-        StyleTextBox(_resumeBox);
-        StyleTextBox(_jdBox);
-
-        context.Controls.Add(resumeHeader, 0, 0);
-        context.Controls.Add(jdHeader, 1, 0);
-        context.Controls.Add(_resumeBox, 0, 1);
-        context.Controls.Add(_jdBox, 1, 1);
+        Control context = _mode == LiveAssistMode.Meeting
+            ? BuildMeetingContext()
+            : BuildInterviewContext();
 
         contextCard.Controls.Add(context);
         root.Controls.Add(contextCard, 0, 1);
+        _contextCard = contextCard;
 
         // =========================
         // CONTROLS CARD
         // =========================
-        var controlsCard = CreateCard("Controls", Color.FromArgb(17, 24, 39));
+        var controlsCard = CreateCard(_mode == LiveAssistMode.Meeting ? "Audio + Meeting Intelligence" : "Audio + Automation", Surface);
 
         var controls = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            RowCount = 3,
+            RowCount = _mode == LiveAssistMode.Meeting ? 4 : 3,
             ColumnCount = 1,
             Padding = new Padding(16, 24, 16, 14),
-            BackColor = Color.FromArgb(17, 24, 39)
+            BackColor = Surface
         };
 
         controls.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         controls.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         controls.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        if (_mode == LiveAssistMode.Meeting)
+            controls.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
 
         var row1 = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
-            BackColor = Color.FromArgb(17, 24, 39)
+            BackColor = Surface
         };
 
         row1.Controls.Add(new Label
@@ -368,7 +405,7 @@ public sealed class AssistantForm : Form
             AutoSize = true,
             Padding = new Padding(0, 10, 10, 0),
             Font = new Font("Segoe UI Semibold", 9.5f),
-            ForeColor = Color.FromArgb(203, 213, 225)
+            ForeColor = Ink
         });
 
         _deviceCombo.Width = 500;
@@ -380,39 +417,28 @@ public sealed class AssistantForm : Form
         _refreshDevicesButton.Click += (_, _) => LoadAudioDevices();
         row1.Controls.Add(_refreshDevicesButton);
 
-        StyleButton(_startButton, "Start Realtime", ButtonStyle.Primary, 145);
-        _startButton.Click += async (_, _) => await StartAsync();
-        row1.Controls.Add(_startButton);
-
-        StyleButton(_stopButton, "Stop", ButtonStyle.Danger, 90);
-        _stopButton.Enabled = false;
-        _stopButton.Click += (_, _) => StopAll();
-        row1.Controls.Add(_stopButton);
-
-        StyleButton(_askButton, "Ask GPT Now", ButtonStyle.Accent, 135);
-        _askButton.Click += async (_, _) => await AskGptForTextAsync(GetManualPromptText(), "MANUAL");
-        row1.Controls.Add(_askButton);
-
         var row2 = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
-            BackColor = Color.FromArgb(17, 24, 39)
+            BackColor = Surface
         };
 
-        _autoAskCheck.Text = "Auto-Ask";
+        _autoAskCheck.Text = _mode == LiveAssistMode.Meeting ? "Auto-Suggest" : "Auto-Ask";
         _autoAskCheck.Checked = true;
         _autoAskCheck.Width = 110;
         _autoAskCheck.Height = 32;
-        _autoAskCheck.ForeColor = Color.FromArgb(226, 232, 240);
+        _autoAskCheck.ForeColor = Ink;
+        _autoAskCheck.BackColor = Surface;
         row2.Controls.Add(_autoAskCheck);
 
         _topMostCheck.Text = "Always on top";
         _topMostCheck.Checked = true;
         _topMostCheck.Width = 145;
         _topMostCheck.Height = 32;
-        _topMostCheck.ForeColor = Color.FromArgb(226, 232, 240);
+        _topMostCheck.ForeColor = Ink;
+        _topMostCheck.BackColor = Surface;
         _topMostCheck.CheckedChanged += (_, _) => TopMost = _topMostCheck.Checked;
         row2.Controls.Add(_topMostCheck);
 
@@ -429,7 +455,7 @@ public sealed class AssistantForm : Form
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
-            BackColor = Color.FromArgb(17, 24, 39)
+            BackColor = Surface
         };
 
         StyleButton(_clearTranscriptButton, "Clear Transcript", ButtonStyle.Secondary, 150);
@@ -442,20 +468,25 @@ public sealed class AssistantForm : Form
 
         var hint = new Label
         {
-            Text = "Tip: Use Auto-Ask for clear interviewer questions, or Ask GPT Now for manual control.",
+            Text = _mode == LiveAssistMode.Meeting
+                ? "Tip: Auto-Suggest watches the live transcript and proposes concise next responses."
+                : "Tip: Use Auto-Ask for clear interviewer questions, or Ask GPT Now for manual control.",
             AutoSize = true,
             Padding = new Padding(12, 9, 0, 0),
             Font = new Font("Segoe UI", 9f),
-            ForeColor = Color.FromArgb(148, 163, 184)
+            ForeColor = SoftText
         };
         row3.Controls.Add(hint);
 
         controls.Controls.Add(row1, 0, 0);
         controls.Controls.Add(row2, 0, 1);
         controls.Controls.Add(row3, 0, 2);
+        if (_mode == LiveAssistMode.Meeting)
+            controls.Controls.Add(BuildMeetingIntelligenceButtons(), 0, 3);
 
         controlsCard.Controls.Add(controls);
         root.Controls.Add(controlsCard, 0, 2);
+        _controlsCard = controlsCard;
         // =========================
         // MAIN SPLIT
         // =========================
@@ -464,20 +495,20 @@ public sealed class AssistantForm : Form
             Dock = DockStyle.Fill,
             RowCount = 1,
             ColumnCount = 2,
-            BackColor = Color.FromArgb(10, 15, 28),
+            BackColor = ShellBack,
             Padding = new Padding(0, 8, 0, 8)
         };
 
         split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
         split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
 
-        var answerPanel = CreateCard("GPT Answer", Color.FromArgb(15, 23, 42));
+        var answerPanel = CreateCard(_mode == LiveAssistMode.Meeting ? "Suggested Response" : "GPT Answer", Surface);
         answerPanel.Padding = new Padding(12, 28, 12, 12);
 
         _answerBox.Dock = DockStyle.Fill;
-        _answerBox.Font = new Font("Segoe UI", 20f, FontStyle.Bold);
-        _answerBox.BackColor = Color.FromArgb(15, 23, 42);
-        _answerBox.ForeColor = Color.White;
+        _answerBox.Font = new Font("Segoe UI", _mode == LiveAssistMode.Meeting ? 13.5f : 17f, FontStyle.Regular);
+        _answerBox.BackColor = Color.FromArgb(250, 253, 255);
+        _answerBox.ForeColor = Ink;
         _answerBox.BorderStyle = BorderStyle.None;
         _answerBox.ReadOnly = true;
         _answerBox.Margin = new Padding(0);
@@ -485,13 +516,13 @@ public sealed class AssistantForm : Form
         answerPanel.Controls.Add(_answerBox);
         split.Controls.Add(answerPanel, 0, 0);
 
-        var transcriptPanel = CreateCard("Live Transcript", Color.FromArgb(248, 250, 252));
+        var transcriptPanel = CreateCard("Live Transcript", Surface);
         transcriptPanel.Padding = new Padding(12, 28, 12, 12);
 
         _transcriptBox.Dock = DockStyle.Fill;
         _transcriptBox.Font = new Font("Segoe UI", 13f);
-        _transcriptBox.BackColor = Color.FromArgb(241, 245, 249);
-        _transcriptBox.ForeColor = Color.FromArgb(15, 23, 42);
+        _transcriptBox.BackColor = Color.FromArgb(250, 253, 255);
+        _transcriptBox.ForeColor = Ink;
         _transcriptBox.BorderStyle = BorderStyle.None;
         _transcriptBox.ReadOnly = true;
         _transcriptBox.Margin = new Padding(0);
@@ -507,20 +538,221 @@ public sealed class AssistantForm : Form
         var footer = new Panel
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.FromArgb(15, 23, 42),
+            BackColor = Surface2,
             Padding = new Padding(14, 0, 14, 0)
         };
 
         _footerStatusLabel.Dock = DockStyle.Fill;
         _footerStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
         _footerStatusLabel.Font = new Font("Segoe UI Semibold", 10f);
-        _footerStatusLabel.ForeColor = Color.FromArgb(125, 211, 252);
+        _footerStatusLabel.ForeColor = Accent;
         _footerStatusLabel.Text = "System status: waiting.";
 
         footer.Controls.Add(_footerStatusLabel);
         root.Controls.Add(footer, 0, 4);
 
         Controls.Add(root);
+    }
+
+    private void SetPreparationVisible(bool visible)
+    {
+        if (_rootLayout == null || _contextCard == null || _controlsCard == null || _contextRowStyle == null || _controlsRowStyle == null)
+            return;
+
+        int contextHeight = _mode == LiveAssistMode.Meeting ? 225 : 190;
+        int controlsHeight = _mode == LiveAssistMode.Meeting ? 210 : 170;
+
+        _rootLayout.SuspendLayout();
+        _contextCard.Visible = visible;
+        _controlsCard.Visible = visible;
+        _contextRowStyle.SizeType = SizeType.Absolute;
+        _controlsRowStyle.SizeType = SizeType.Absolute;
+        _contextRowStyle.Height = visible ? contextHeight : 0;
+        _controlsRowStyle.Height = visible ? controlsHeight : 0;
+        _rootLayout.ResumeLayout(true);
+    }
+
+    private Control BuildInterviewContext()
+    {
+        var context = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 2,
+            ColumnCount = 2,
+            Padding = new Padding(16, 20, 16, 16),
+            BackColor = Surface
+        };
+
+        context.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        context.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        context.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        context.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var resumeHeader = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            BackColor = Surface
+        };
+
+        resumeHeader.Controls.Add(new Label
+        {
+            Text = "Resume / Candidate Context",
+            AutoSize = true,
+            Padding = new Padding(0, 8, 12, 0),
+            Font = new Font("Segoe UI Semibold", 10f),
+            ForeColor = Ink
+        });
+
+        StyleButton(_browseResumeButton, "Browse Resume", ButtonStyle.Secondary, 145);
+        _browseResumeButton.Click += (_, _) => PickResumeFile();
+        resumeHeader.Controls.Add(_browseResumeButton);
+
+        var jdHeader = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            BackColor = Surface
+        };
+
+        jdHeader.Controls.Add(new Label
+        {
+            Text = "Job Description",
+            AutoSize = true,
+            Padding = new Padding(0, 8, 12, 0),
+            Font = new Font("Segoe UI Semibold", 10f),
+            ForeColor = Ink
+        });
+
+        StyleButton(_browseJdButton, "Browse JD", ButtonStyle.Secondary, 120);
+        _browseJdButton.Click += (_, _) => PickJdFile();
+        jdHeader.Controls.Add(_browseJdButton);
+
+        StyleTextBox(_resumeBox);
+        StyleTextBox(_jdBox);
+
+        context.Controls.Add(resumeHeader, 0, 0);
+        context.Controls.Add(jdHeader, 1, 0);
+        context.Controls.Add(_resumeBox, 0, 1);
+        context.Controls.Add(_jdBox, 1, 1);
+        return context;
+    }
+
+    private Control BuildMeetingContext()
+    {
+        var context = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 4,
+            ColumnCount = 4,
+            Padding = new Padding(16, 24, 16, 16),
+            BackColor = Surface
+        };
+
+        context.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22));
+        context.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22));
+        context.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22));
+        context.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34));
+        context.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+        context.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        context.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+        context.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        StyleSingleLineTextBox(_meetingTitleBox);
+        StyleSingleLineTextBox(_meetingParticipantsBox);
+        StyleTextBox(_meetingAgendaBox);
+
+        _meetingTypeCombo.Items.Clear();
+        _meetingTypeCombo.Items.AddRange(new object[]
+        {
+            "Team meeting",
+            "Client meeting",
+            "Project review",
+            "Sales call",
+            "Technical discussion",
+            "Executive update",
+            "Interview debrief",
+            "Custom"
+        });
+        _meetingTypeCombo.SelectedIndex = 0;
+        StyleComboBox(_meetingTypeCombo);
+
+        _meetingRoleCombo.Items.Clear();
+        _meetingRoleCombo.Items.AddRange(new object[]
+        {
+            "Presenter",
+            "Participant",
+            "Project owner",
+            "Sales rep",
+            "Interviewer",
+            "Candidate",
+            "Manager",
+            "Custom"
+        });
+        _meetingRoleCombo.SelectedIndex = 1;
+        StyleComboBox(_meetingRoleCombo);
+
+        context.Controls.Add(CreateMeetingFieldLabel("Meeting title"), 0, 0);
+        context.Controls.Add(CreateMeetingFieldLabel("Meeting type"), 1, 0);
+        context.Controls.Add(CreateMeetingFieldLabel("User role"), 2, 0);
+        context.Controls.Add(CreateMeetingFieldLabel("Participants"), 3, 0);
+
+        context.Controls.Add(_meetingTitleBox, 0, 1);
+        context.Controls.Add(_meetingTypeCombo, 1, 1);
+        context.Controls.Add(_meetingRoleCombo, 2, 1);
+        context.Controls.Add(_meetingParticipantsBox, 3, 1);
+
+        context.Controls.Add(CreateMeetingFieldLabel("Agenda"), 0, 2);
+        context.SetColumnSpan(_meetingAgendaBox, 4);
+        context.Controls.Add(_meetingAgendaBox, 0, 3);
+        return context;
+    }
+
+    private Control BuildMeetingIntelligenceButtons()
+    {
+        var row = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Surface
+        };
+
+        StyleButton(_meetingSummaryButton, "Generate Summary", ButtonStyle.Secondary, 150);
+        _meetingSummaryButton.Click += async (_, _) => await AskGptForTextAsync(BuildFullTranscriptForGpt(""), "SUMMARY", "summary");
+        row.Controls.Add(_meetingSummaryButton);
+
+        StyleButton(_meetingDecisionsButton, "Extract Decisions", ButtonStyle.Secondary, 150);
+        _meetingDecisionsButton.Click += async (_, _) => await AskGptForTextAsync(BuildFullTranscriptForGpt(""), "DECISIONS", "decisions");
+        row.Controls.Add(_meetingDecisionsButton);
+
+        StyleButton(_meetingActionsButton, "Extract Action Items", ButtonStyle.Secondary, 160);
+        _meetingActionsButton.Click += async (_, _) => await AskGptForTextAsync(BuildFullTranscriptForGpt(""), "ACTIONS", "action_items");
+        row.Controls.Add(_meetingActionsButton);
+
+        StyleButton(_meetingEmailButton, "Follow-up Email", ButtonStyle.Secondary, 145);
+        _meetingEmailButton.Click += async (_, _) => await AskGptForTextAsync(BuildFullTranscriptForGpt(""), "EMAIL", "follow_up_email");
+        row.Controls.Add(_meetingEmailButton);
+
+        StyleButton(_meetingSaveButton, "Save Meeting Notes", ButtonStyle.Accent, 165);
+        _meetingSaveButton.Click += (_, _) => SaveMeetingNotes();
+        row.Controls.Add(_meetingSaveButton);
+
+        return row;
+    }
+
+    private static Label CreateMeetingFieldLabel(string text)
+    {
+        return new Label
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.BottomLeft,
+            Font = new Font("Segoe UI Semibold", 9.2f),
+            ForeColor = Ink
+        };
     }
 
     private enum ButtonStyle
@@ -533,12 +765,13 @@ public sealed class AssistantForm : Form
 
     private Panel CreateCard(string title, Color background)
     {
-        var panel = new Panel
+        var panel = new RoundedPanel
         {
             Dock = DockStyle.Fill,
             BackColor = background,
             Padding = new Padding(14, 34, 14, 14),
-            Margin = new Padding(4)
+            Margin = new Padding(4),
+            Radius = 12
         };
 
         var titleLabel = new Label
@@ -548,9 +781,7 @@ public sealed class AssistantForm : Form
             Dock = DockStyle.Top,
             TextAlign = ContentAlignment.MiddleLeft,
             Font = new Font("Segoe UI Semibold", 10.5f),
-            ForeColor = background.GetBrightness() < 0.5
-                ? Color.FromArgb(241, 245, 249)
-                : Color.FromArgb(15, 23, 42),
+            ForeColor = Ink,
             BackColor = background,
             Padding = new Padding(2, 0, 0, 0)
         };
@@ -568,9 +799,31 @@ public sealed class AssistantForm : Form
         box.Dock = DockStyle.Fill;
         box.BorderStyle = BorderStyle.FixedSingle;
         box.Font = new Font("Segoe UI", 10f);
-        box.BackColor = Color.FromArgb(248, 250, 252);
-        box.ForeColor = Color.FromArgb(15, 23, 42);
+        box.BackColor = Color.FromArgb(250, 253, 255);
+        box.ForeColor = Ink;
         box.Margin = new Padding(4);
+    }
+
+    private void StyleSingleLineTextBox(TextBox box)
+    {
+        box.Multiline = false;
+        box.Dock = DockStyle.Fill;
+        box.BorderStyle = BorderStyle.FixedSingle;
+        box.Font = new Font("Segoe UI", 10f);
+        box.BackColor = Color.FromArgb(250, 253, 255);
+        box.ForeColor = Ink;
+        box.Margin = new Padding(4);
+    }
+
+    private void StyleComboBox(ComboBox combo)
+    {
+        combo.Dock = DockStyle.Fill;
+        combo.DropDownStyle = ComboBoxStyle.DropDownList;
+        combo.FlatStyle = FlatStyle.Flat;
+        combo.Font = new Font("Segoe UI", 10f);
+        combo.BackColor = Color.FromArgb(250, 253, 255);
+        combo.ForeColor = Ink;
+        combo.Margin = new Padding(4);
     }
 
     private Label CreateSmallLabel(string text)
@@ -581,7 +834,7 @@ public sealed class AssistantForm : Form
             AutoSize = true,
             Padding = new Padding(10, 9, 4, 0),
             Font = new Font("Segoe UI Semibold", 9.5f),
-            ForeColor = Color.FromArgb(203, 213, 225)
+            ForeColor = Ink
         };
     }
 
@@ -593,7 +846,7 @@ public sealed class AssistantForm : Form
         box.Width = 64;
         box.Height = 30;
         box.BackColor = Color.White;
-        box.ForeColor = Color.FromArgb(15, 23, 42);
+        box.ForeColor = Ink;
     }
 
     private void StyleButton(Button button, string text, ButtonStyle style, int width)
@@ -609,27 +862,27 @@ public sealed class AssistantForm : Form
         switch (style)
         {
             case ButtonStyle.Primary:
-                button.BackColor = Color.FromArgb(37, 99, 235);
+                button.BackColor = AccentDark;
                 button.ForeColor = Color.White;
-                button.FlatAppearance.BorderColor = Color.FromArgb(37, 99, 235);
+                button.FlatAppearance.BorderColor = AccentDark;
                 break;
 
             case ButtonStyle.Accent:
-                button.BackColor = Color.FromArgb(16, 185, 129);
+                button.BackColor = Accent;
                 button.ForeColor = Color.White;
-                button.FlatAppearance.BorderColor = Color.FromArgb(16, 185, 129);
+                button.FlatAppearance.BorderColor = Accent;
                 break;
 
             case ButtonStyle.Danger:
-                button.BackColor = Color.FromArgb(220, 38, 38);
+                button.BackColor = Danger;
                 button.ForeColor = Color.White;
-                button.FlatAppearance.BorderColor = Color.FromArgb(220, 38, 38);
+                button.FlatAppearance.BorderColor = Danger;
                 break;
 
             default:
-                button.BackColor = Color.FromArgb(30, 41, 59);
-                button.ForeColor = Color.FromArgb(226, 232, 240);
-                button.FlatAppearance.BorderColor = Color.FromArgb(51, 65, 85);
+                button.BackColor = Color.FromArgb(246, 251, 255);
+                button.ForeColor = Ink;
+                button.FlatAppearance.BorderColor = Stroke;
                 break;
         }
 
@@ -637,6 +890,7 @@ public sealed class AssistantForm : Form
         button.FlatAppearance.MouseOverBackColor = ControlPaint.Light(button.BackColor, 0.12f);
         button.FlatAppearance.MouseDownBackColor = ControlPaint.Dark(button.BackColor, 0.12f);
     }
+
     private void LoadAudioDevices()
     {
         try
@@ -708,9 +962,10 @@ public sealed class AssistantForm : Form
             _startButton.Enabled = false;
             _stopButton.Enabled = true;
             _deviceCombo.Enabled = false;
+            SetPreparationVisible(false);
 
-            SetStatus("Realtime transcription running.");
-            SetFooterStatus("Listening to system audio. Waiting for speech...");
+            SetStatus(_mode == LiveAssistMode.Meeting ? "Live meeting listening is running." : "Realtime transcription running.");
+            SetFooterStatus(_mode == LiveAssistMode.Meeting ? "Listening to meeting audio. Waiting for speakers..." : "Listening to system audio. Waiting for speech...");
             Log("Realtime started.");
         }
         catch (Exception ex)
@@ -1098,11 +1353,11 @@ public sealed class AssistantForm : Form
             _transcriptBox.Clear();
 
             _transcriptBox.SelectionFont = new Font("Segoe UI Semibold", 11f);
-            _transcriptBox.SelectionColor = Color.FromArgb(37, 99, 235);
+            _transcriptBox.SelectionColor = Accent;
             _transcriptBox.AppendText("LIVE CAPTION\n");
 
             _transcriptBox.SelectionFont = new Font("Segoe UI", 13f);
-            _transcriptBox.SelectionColor = Color.FromArgb(15, 23, 42);
+            _transcriptBox.SelectionColor = Ink;
 
             string existing = _transcriptHistory.ToString();
             if (!string.IsNullOrWhiteSpace(existing))
@@ -1110,7 +1365,7 @@ public sealed class AssistantForm : Form
                 _transcriptBox.AppendText(existing.TrimEnd() + Environment.NewLine + Environment.NewLine);
             }
 
-            _transcriptBox.SelectionColor = Color.FromArgb(37, 99, 235);
+            _transcriptBox.SelectionColor = Accent;
             _transcriptBox.AppendText(text);
 
             _transcriptBox.SelectionStart = _transcriptBox.TextLength;
@@ -1127,6 +1382,27 @@ public sealed class AssistantForm : Form
         _liveDeltaBuffer.Clear();
 
         bool shouldAsk = _autoAskCheck.Checked && ShouldAskGpt(text);
+
+        if (_mode == LiveAssistMode.Meeting)
+        {
+            if (_transcriptHistory.Length > 0)
+                _transcriptHistory.AppendLine();
+
+            _transcriptHistory.AppendLine(text);
+            RenderFinalTranscript("LIVE MEETING TRANSCRIPT");
+
+            if (shouldAsk)
+            {
+                _ = AskGptForTextAsync(BuildFullTranscriptForGpt(""), "AUTO", "live_suggestion");
+                SetStatus("Meeting transcript captured. Auto-suggest is preparing a response.");
+                SetFooterStatus("Auto-suggest triggered from live meeting transcript.");
+                return;
+            }
+
+            SetStatus("Meeting transcript received.");
+            SetFooterStatus("Meeting transcript received. Waiting for enough signal before suggesting.");
+            return;
+        }
 
         if (shouldAsk)
         {
@@ -1150,21 +1426,7 @@ public sealed class AssistantForm : Form
 
         _transcriptHistory.AppendLine(text);
 
-        BeginInvoke(() =>
-        {
-            _transcriptBox.Clear();
-
-            _transcriptBox.SelectionFont = new Font("Segoe UI Semibold", 11f);
-            _transcriptBox.SelectionColor = Color.FromArgb(22, 163, 74);
-            _transcriptBox.AppendText("FINAL TRANSCRIPT\n");
-
-            _transcriptBox.SelectionFont = new Font("Segoe UI", 13f);
-            _transcriptBox.SelectionColor = Color.FromArgb(15, 23, 42);
-            _transcriptBox.AppendText(_transcriptHistory.ToString());
-
-            _transcriptBox.SelectionStart = _transcriptBox.TextLength;
-            _transcriptBox.ScrollToCaret();
-        });
+        RenderFinalTranscript("FINAL TRANSCRIPT");
 
         SetStatus("Transcript received.");
         SetFooterStatus("Transcript received. No clear question detected, GPT not triggered.");
@@ -1188,7 +1450,15 @@ public sealed class AssistantForm : Form
         string lower = " " + text.ToLowerInvariant() + " ";
         int wc = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
 
-        if (wc < 5) return false;
+        int minWords = Math.Max(4, (int)_minWordsBox.Value);
+        if (wc < minWords) return false;
+
+        if (_mode == LiveAssistMode.Meeting)
+        {
+            _lastSentNorm = norm;
+            _lastAskTimeUtc = DateTime.UtcNow;
+            return true;
+        }
 
         // Hard reject common non-question coaching/instruction phrases.
         string[] rejectPhrases =
@@ -1273,7 +1543,7 @@ public sealed class AssistantForm : Form
         return true;
     }
 
-    private async Task AskGptForTextAsync(string text, string source)
+    private async Task AskGptForTextAsync(string text, string source, string meetingTask = "live_suggestion")
     {
         text = (text ?? "").Trim();
         if (string.IsNullOrWhiteSpace(text))
@@ -1302,22 +1572,12 @@ public sealed class AssistantForm : Form
 
         try
         {
-            string resume = Clamp(_resumeBox.Text.Trim(), 9000);
-            string jd = Clamp(_jdBox.Text.Trim(), 7000);
-
-            string systemInstructions =
-                "You are a professional interview assistant. Generate the exact interview answer I should say, in first person, as if I am speaking directly to the interviewer. " +
-                "Do not give advice, do not explain how I should answer, and do not frame the response as coaching. " +
-                "Do not use phrases like 'I would say', 'If asked', 'You can say', or anything that sounds like guidance. " +
-                "Just produce the final spoken answer in my voice.\n\n" +
-                "The answer must sound natural, confident, convincing, and human, like a strong real interview candidate speaking out loud. " +
-                "Do not sound robotic, scripted, overly formal, or overly polished like AI-generated text. " +
-                "Avoid filler, meta-commentary, disclaimers, and unnecessary setup.\n\n" +
-                "Keep the language clear and easy to follow. Do not sound overly technical, overly complex, or full of jargon unless the interviewer clearly asks for technical depth. " +
-                "By default, explain things in a simple, professional, conversational way that still sounds smart and credible. " +
-                "If the question is technical, answer clearly first, then add only the most useful technical detail needed to sound strong and competent.\n\n" +
-                "This is an initial recruiter conversation, not a deep technical interview, unless the interviewer clearly asks a technical question. " +
-                "Return only the final answer. Do not repeat the question. Do not include labels like Q: or A:. Maximum 45 words.";
+            string systemInstructions = _mode == LiveAssistMode.Meeting
+                ? BuildMeetingSystemInstructions(meetingTask)
+                : BuildInterviewSystemInstructions();
+            string userContent = _mode == LiveAssistMode.Meeting
+                ? BuildMeetingUserPrompt(text, meetingTask)
+                : BuildInterviewUserPrompt(text);
 
             var body = new
             {
@@ -1333,13 +1593,7 @@ public sealed class AssistantForm : Form
                     new
                     {
                         role = "user",
-                        content =
-                            "Candidate resume/context:\n" + resume +
-                            "\n\nJob description:\n" + jd +
-                            "\n\nRecent interviewer transcript. It may contain one or more questions:\n" + text +
-                            "\n\nIdentify the most important clear question or questions in the transcript and answer them naturally as the candidate. " +
-                            "If there are multiple related questions, combine them into one strong spoken answer. " +
-                            "Do not repeat the question. Do not answer non-question filler. No bullets unless absolutely necessary."
+                        content = userContent
                     }
                 },
                 stream = true
@@ -1407,6 +1661,11 @@ public sealed class AssistantForm : Form
 
             SetStatus("GPT answer ready.");
             SetFooterStatus("Answer ready.");
+            if (_mode == LiveAssistMode.Meeting && meetingTask == "summary")
+                ActivityLogService.Add("Meeting", "Meeting summary generated", "Generated from live transcript.");
+            else if (_mode == LiveAssistMode.Meeting && meetingTask == "follow_up_email")
+                ActivityLogService.Add("Meeting", "Follow-up email generated", "Generated from live transcript.");
+            BeginInvoke(() => HighlightAnswerKeywords());
         }
         catch (Exception ex)
         {
@@ -1434,6 +1693,106 @@ public sealed class AssistantForm : Form
 
         return string.Join(Environment.NewLine, parts)
             .Trim();
+    }
+
+    private string BuildInterviewSystemInstructions()
+    {
+        return
+            "You are a professional interview assistant. Generate the exact interview answer I should say, in first person, as if I am speaking directly to the interviewer. " +
+            "Do not give advice, do not explain how I should answer, and do not frame the response as coaching. " +
+            "Do not use phrases like 'I would say', 'If asked', 'You can say', or anything that sounds like guidance. " +
+            "Just produce the final spoken answer in my voice.\n\n" +
+            "The answer must sound natural, confident, convincing, and human, like a strong real interview candidate speaking out loud. " +
+            "Do not sound robotic, scripted, overly formal, or overly polished like AI-generated text. " +
+            "Avoid filler, meta-commentary, disclaimers, and unnecessary setup.\n\n" +
+            "Keep the language clear and easy to follow. Do not sound overly technical, overly complex, or full of jargon unless the interviewer clearly asks for technical depth. " +
+            "By default, explain things in a simple, professional, conversational way that still sounds smart and credible. " +
+            "If the question is technical, answer clearly first, then add only the most useful technical detail needed to sound strong and competent.\n\n" +
+            "This is an initial recruiter conversation, not a deep technical interview, unless the interviewer clearly asks a technical question. " +
+            "Return only the final answer. Do not repeat the question. Do not include labels like Q: or A:. Maximum 45 words.";
+    }
+
+    private string BuildInterviewUserPrompt(string text)
+    {
+        string resume = Clamp(_resumeBox.Text.Trim(), 9000);
+        string jd = Clamp(_jdBox.Text.Trim(), 7000);
+
+        return
+            "Candidate resume/context:\n" + resume +
+            "\n\nJob description:\n" + jd +
+            "\n\nRecent interviewer transcript. It may contain one or more questions:\n" + text +
+            "\n\nIdentify the most important clear question or questions in the transcript and answer them naturally as the candidate. " +
+            "If there are multiple related questions, combine them into one strong spoken answer. " +
+            "Do not repeat the question. Do not answer non-question filler. No bullets unless absolutely necessary.";
+    }
+
+    private string BuildMeetingSystemInstructions(string meetingTask)
+    {
+        if (meetingTask == "summary")
+            return "You are a meeting intelligence assistant. Create a concise executive meeting summary with decisions, unresolved questions, risks, and next steps. Use clear headings.";
+
+        if (meetingTask == "decisions")
+            return "You are a meeting intelligence assistant. Extract only explicit or strongly implied decisions from the meeting transcript. Include owner or context when available. Use bullets.";
+
+        if (meetingTask == "action_items")
+            return "You are a meeting intelligence assistant. Extract action items from the meeting transcript. Include task, owner, deadline, and dependency when available. Use bullets.";
+
+        if (meetingTask == "follow_up_email")
+            return "You are a meeting intelligence assistant. Draft a concise professional follow-up email from the meeting transcript. Include summary, decisions, action items, and next steps.";
+
+        return
+            "You are a live meeting strategist. Help the user know what to say next during a real meeting. " +
+            "Be concise, direct, and useful live. Consider the user's role, the meeting type, participants, agenda, and latest transcript. " +
+            "Return exactly these sections:\n\n" +
+            "Suggested Response:\n" +
+            "Clarifying Question:\n" +
+            "Key Point:\n" +
+            "Risk or Concern:\n" +
+            "Follow-up:\n\n" +
+            "Keep each section short enough to glance at during a live call.";
+    }
+
+    private string BuildMeetingUserPrompt(string text, string meetingTask)
+    {
+        string transcript = Clamp(text, meetingTask == "live_suggestion" ? 7000 : 14000);
+        string taskInstruction = meetingTask switch
+        {
+            "summary" => "Generate Summary.",
+            "decisions" => "Extract Decisions.",
+            "action_items" => "Extract Action Items.",
+            "follow_up_email" => "Generate Follow-up Email.",
+            _ => "Suggest what I should say next live."
+        };
+
+        return
+            "Meeting title:\n" + _meetingTitleBox.Text.Trim() +
+            "\n\nMeeting type:\n" + (_meetingTypeCombo.SelectedItem?.ToString() ?? "") +
+            "\n\nParticipants:\n" + _meetingParticipantsBox.Text.Trim() +
+            "\n\nAgenda:\n" + _meetingAgendaBox.Text.Trim() +
+            "\n\nUser role in meeting:\n" + (_meetingRoleCombo.SelectedItem?.ToString() ?? "") +
+            "\n\nTask:\n" + taskInstruction +
+            "\n\nTranscript:\n" + transcript;
+    }
+
+    private void RenderFinalTranscript(string heading)
+    {
+        if (!IsHandleCreated) return;
+
+        BeginInvoke(() =>
+        {
+            _transcriptBox.Clear();
+
+            _transcriptBox.SelectionFont = new Font("Segoe UI Semibold", 11f);
+            _transcriptBox.SelectionColor = Success;
+            _transcriptBox.AppendText(heading + "\n");
+
+            _transcriptBox.SelectionFont = new Font("Segoe UI", 13f);
+            _transcriptBox.SelectionColor = Ink;
+            _transcriptBox.AppendText(_transcriptHistory.ToString());
+
+            _transcriptBox.SelectionStart = _transcriptBox.TextLength;
+            _transcriptBox.ScrollToCaret();
+        });
     }
 
     private string GetManualPromptText()
@@ -1557,26 +1916,71 @@ public sealed class AssistantForm : Form
         _transcriptHistory.Clear();
     }
 
+    private void SaveMeetingNotes()
+    {
+        try
+        {
+            string folder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "RoleAxis",
+                "meetings");
+            Directory.CreateDirectory(folder);
+            string safeTitle = string.Join(
+                "-",
+                (_meetingTitleBox.Text.Trim().Length == 0 ? "meeting" : _meetingTitleBox.Text.Trim())
+                .Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+            string path = Path.Combine(folder, $"{safeTitle}-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
+
+            var builder = new StringBuilder();
+            builder.AppendLine("ROLEAXIS MEETING NOTES");
+            builder.AppendLine("======================");
+            builder.AppendLine("Title: " + _meetingTitleBox.Text.Trim());
+            builder.AppendLine("Type: " + (_meetingTypeCombo.SelectedItem?.ToString() ?? ""));
+            builder.AppendLine("Role: " + (_meetingRoleCombo.SelectedItem?.ToString() ?? ""));
+            builder.AppendLine("Participants: " + _meetingParticipantsBox.Text.Trim());
+            builder.AppendLine();
+            builder.AppendLine("AGENDA");
+            builder.AppendLine(_meetingAgendaBox.Text.Trim());
+            builder.AppendLine();
+            builder.AppendLine("FULL TRANSCRIPT");
+            builder.AppendLine(_transcriptHistory.ToString().Trim());
+            builder.AppendLine();
+            builder.AppendLine("LATEST SUGGESTED RESPONSE / INTELLIGENCE");
+            builder.AppendLine(_answerBox.Text.Trim());
+
+            File.WriteAllText(path, builder.ToString());
+            SetFooterStatus("Meeting notes saved: " + path);
+            RenderAnswer("", "Meeting notes saved:\n" + path);
+        }
+        catch (Exception ex)
+        {
+            SetFooterStatus("Meeting notes save failed: " + ex.Message);
+            RenderAnswer("", "Meeting notes save failed: " + ex.Message);
+        }
+    }
+
     private void RenderQuestionHeader(string question)
     {
         _answerBox.SelectionFont = new Font("Segoe UI Semibold", 12f);
-        _answerBox.SelectionColor = Color.FromArgb(96, 165, 250);
-        _answerBox.AppendText("TRANSCRIPT SENT TO GPT\n");
+        _answerBox.SelectionColor = Accent;
+        _answerBox.AppendText(_mode == LiveAssistMode.Meeting ? "MEETING TRANSCRIPT SENT TO GPT\n" : "TRANSCRIPT SENT TO GPT\n");
 
         _answerBox.SelectionFont = new Font("Segoe UI", 13f, FontStyle.Italic);
-        _answerBox.SelectionColor = Color.FromArgb(203, 213, 225);
+        _answerBox.SelectionColor = SoftText;
         _answerBox.AppendText(Clamp(question, 500) + Environment.NewLine + Environment.NewLine);
 
         _answerBox.SelectionFont = new Font("Segoe UI Semibold", 13f);
-        _answerBox.SelectionColor = Color.FromArgb(34, 197, 94);
-        _answerBox.AppendText("ANSWER\n");
+        _answerBox.SelectionColor = Success;
+        _answerBox.AppendText(_mode == LiveAssistMode.Meeting ? "SUGGESTED RESPONSE\n" : "ANSWER\n");
     }
 
     private void RenderAnswerBody(string answer)
     {
-        _answerBox.SelectionFont = new Font("Segoe UI", 20f, FontStyle.Bold);
-        _answerBox.SelectionColor = Color.White;
+        _answerBox.SelectionFont = new Font("Segoe UI", _mode == LiveAssistMode.Meeting ? 13.5f : 17f, FontStyle.Regular);
+        _answerBox.SelectionColor = Ink;
         _answerBox.AppendText(answer);
+        if (!string.IsNullOrWhiteSpace(answer) && !answer.Equals("Thinking...", StringComparison.OrdinalIgnoreCase))
+            HighlightAnswerKeywords();
         _answerBox.SelectionStart = _answerBox.TextLength;
         _answerBox.ScrollToCaret();
     }
@@ -1587,12 +1991,83 @@ public sealed class AssistantForm : Form
 
         BeginInvoke(() =>
         {
-            _answerBox.SelectionFont = new Font("Segoe UI", 20f, FontStyle.Bold);
-            _answerBox.SelectionColor = Color.White;
+            _answerBox.SelectionFont = new Font("Segoe UI", _mode == LiveAssistMode.Meeting ? 13.5f : 17f, FontStyle.Regular);
+            _answerBox.SelectionColor = Ink;
             _answerBox.AppendText(delta);
             _answerBox.SelectionStart = _answerBox.TextLength;
             _answerBox.ScrollToCaret();
         });
+    }
+
+    private void HighlightAnswerKeywords()
+    {
+        if (_answerBox.IsDisposed)
+            return;
+
+        string text = _answerBox.Text;
+        if (text.Length < 12 || text.Length > 24000)
+            return;
+
+        int originalStart = _answerBox.SelectionStart;
+        int originalLength = _answerBox.SelectionLength;
+        var ranges = BuildAnswerKeywordRanges(text).Take(90).ToList();
+        if (ranges.Count == 0)
+            return;
+
+        _answerBox.SuspendLayout();
+        try
+        {
+            var font = new Font("Segoe UI Semibold", _mode == LiveAssistMode.Meeting ? 13.5f : 17f, FontStyle.Bold);
+            foreach (var range in ranges)
+            {
+                if (range.Start < 0 || range.Length <= 0 || range.Start + range.Length > text.Length)
+                    continue;
+                _answerBox.Select(range.Start, range.Length);
+                _answerBox.SelectionFont = font;
+                _answerBox.SelectionColor = Danger;
+            }
+        }
+        finally
+        {
+            _answerBox.Select(Math.Min(originalStart, _answerBox.TextLength), Math.Min(originalLength, Math.Max(0, _answerBox.TextLength - originalStart)));
+            _answerBox.ResumeLayout();
+        }
+    }
+
+    private static IEnumerable<(int Start, int Length)> BuildAnswerKeywordRanges(string text)
+    {
+        var terms = new HashSet<string>(AnswerKeywordHints, StringComparer.OrdinalIgnoreCase);
+        var blocked = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "answer", "response", "suggested", "meeting", "transcript", "sent", "gpt", "this", "that", "there", "when", "what",
+            "with", "from", "your", "have", "will", "about", "because"
+        };
+
+        foreach (Match match in Regex.Matches(text, @"\b(?:[A-Z]{2,}|[A-Z][a-zA-Z0-9+/#.-]{4,}|\d+(?:[%x+]|\.\d+)?)\b"))
+        {
+            string value = match.Value.Trim();
+            if (value.Length >= 3 && !blocked.Contains(value))
+                terms.Add(value);
+            if (terms.Count >= 48)
+                break;
+        }
+
+        var ranges = new List<(int Start, int Length)>();
+        foreach (string term in terms.Where(term => term.Length >= 3).OrderByDescending(term => term.Length))
+        {
+            string pattern = Regex.Escape(term).Replace("\\ ", "\\s+");
+            foreach (Match match in Regex.Matches(text, @"(?<!\w)" + pattern + @"(?!\w)", RegexOptions.IgnoreCase))
+                ranges.Add((match.Index, match.Length));
+        }
+
+        return ranges
+            .OrderBy(range => range.Start)
+            .Aggregate(new List<(int Start, int Length)>(), (merged, range) =>
+            {
+                if (merged.Count == 0 || range.Start >= merged[^1].Start + merged[^1].Length)
+                    merged.Add(range);
+                return merged;
+            });
     }
 
     private void RenderAnswer(string question, string answer)
@@ -1647,6 +2122,28 @@ public sealed class AssistantForm : Form
             _internalLog.RemoveAt(0);
     }
 
+    public void EndSession()
+    {
+        StopAll();
+    }
+
+    public void LoadInterviewContext(string resume, string jobDescription)
+    {
+        if (InvokeRequired)
+        {
+            BeginInvoke(() => LoadInterviewContext(resume, jobDescription));
+            return;
+        }
+
+        if (_mode != LiveAssistMode.Interview)
+            return;
+
+        _resumeBox.Text = resume ?? "";
+        _jdBox.Text = jobDescription ?? "";
+        SetStatus("Interview context loaded from RoleAxis Resume Intelligence.");
+        SetFooterStatus("Resume and job context loaded.");
+    }
+
     private void StopAll()
     {
         try
@@ -1694,7 +2191,8 @@ public sealed class AssistantForm : Form
                 _startButton.Enabled = true;
                 _stopButton.Enabled = false;
                 _deviceCombo.Enabled = true;
-                _statusLabel.Text = "Stopped.";
+                SetPreparationVisible(true);
+                _statusLabel.Text = _mode == LiveAssistMode.Meeting ? "Meeting listening stopped." : "Stopped.";
                 _footerStatusLabel.Text = "System status: stopped.";
             });
         }

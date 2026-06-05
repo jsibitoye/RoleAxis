@@ -1,40 +1,86 @@
 {% extends "base.html" %}
-{% block title %}Downloads | RoleAxis{% endblock %}
+{% block title %}RoleAxis Desktop | Downloads{% endblock %}
 {% block page_eyebrow %}RoleAxis Desktop{% endblock %}
-{% block page_title %}Downloads{% endblock %}
+{% block page_title %}Desktop Command Suite{% endblock %}
 {% block content %}
-<section class="platform-hero">
+<section class="desktop-hero">
   <div>
-    <span class="eyebrow">Local assistants, cloud licensing</span>
-    <h2>Install the desktop tools that need local audio and files</h2>
+    <span class="eyebrow">Local intelligence, cloud control</span>
+    <h2>Install the premium desktop command center for local audio, files, evidence, and vault workflows.</h2>
     <p>
-      RoleAxis Cloud manages accounts, plans, devices, and secure license checks.
-      Interview Assistant runs locally so realtime audio and desktop workflows stay on the workstation.
+      RoleAxis Cloud manages accounts, plans, device registration, active sessions, and license sync.
+      RoleAxis Desktop keeps high-trust local work on the workstation.
     </p>
     <div class="button-row">
-      <a class="button primary" href="/career/interview-assistant">Interview Assistant</a>
+      {% if status.installer_exists %}
+      <a class="button primary" href="/downloads/desktop/installer">Download Installer</a>
+      {% else %}
+      <span class="button secondary disabled">Installer not built yet</span>
+      {% endif %}
       <a class="button secondary" href="/account/devices">Manage Devices</a>
+      <a class="button secondary" href="/subscription">View Plan</a>
     </div>
+  </div>
+  <aside class="desktop-release-card">
+    <span class="eyebrow">Release channel</span>
+    <strong>{{ suite.version }}</strong>
+    <small>{{ status.installer_filename if status.installer_exists else "Run the installer build script to publish the setup file." }}</small>
+  </aside>
+</section>
+
+<section class="metric-grid">
+  <article class="metric-card accent">
+    <span>Desktop plan</span>
+    <strong>{{ plan.name }}</strong>
+  </article>
+  <article class="metric-card">
+    <span>Registered devices</span>
+    <strong>{{ device_count }}/{{ plan.max_devices }}</strong>
+  </article>
+  <article class="metric-card">
+    <span>Active sessions</span>
+    <strong>{{ active_session_count }}/{{ plan.max_active_sessions }}</strong>
+  </article>
+  <article class="metric-card">
+    <span>Heartbeat</span>
+    <strong>{{ suite.heartbeat_interval_seconds }}s</strong>
+  </article>
+</section>
+
+<section class="section-header">
+  <div>
+    <span class="eyebrow">Desktop modules</span>
+    <h2>One installer, five local services</h2>
   </div>
 </section>
 
-<section class="settings-grid">
+<section class="workspace-grid compact-grid">
+  {% for module in suite.modules %}
+  <article class="workspace-card">
+    <span class="pill">{{ module.status }}</span>
+    <h3>{{ module.name }}</h3>
+    <p>{{ module.description }}</p>
+    <small class="muted">{{ module.privacy }}</small>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="settings-grid desktop-sync-grid">
   <article class="setting-panel">
-    <span class="eyebrow">Interview Assistant</span>
-    <h2>Windows desktop app</h2>
-    <p>Current plan: <strong>{{ plan.name }}</strong>. Device usage: {{ device_count }} of {{ plan.max_devices }}.</p>
-    {% if status.installer_exists %}
-    <a class="button primary" href="#">Download Installer</a>
-    {% else %}
-    <span class="button secondary disabled">Installer artifact not uploaded</span>
-    {% endif %}
-    <p class="muted">Build outputs and installer binaries remain local artifacts until a release pipeline publishes them.</p>
+    <span class="eyebrow">Cloud sync contract</span>
+    <h2>Desktop and web now speak the same suite language</h2>
+    <p>Login, heartbeat, license refresh, and sync all return the RoleAxis Desktop manifest, subscription limits, device status, vault policy, and module access.</p>
+    <ul class="roadmap-list">
+      <li><code>{{ suite.sync.login }}</code></li>
+      <li><code>{{ suite.sync.heartbeat }}</code></li>
+      <li><code>{{ suite.sync.license }}</code></li>
+      <li><code>{{ suite.sync.sync }}</code></li>
+    </ul>
   </article>
 
   <article class="setting-panel">
-    <span class="eyebrow">License limits</span>
-    <h2>{{ active_session_count }} active desktop session{{ "" if active_session_count == 1 else "s" }}</h2>
-    <p>Desktop apps sign in through `/api/desktop/login`, heartbeat through `/api/desktop/heartbeat`, and stop when a device is revoked.</p>
+    <span class="eyebrow">Plan features</span>
+    <h2>Licensed capabilities</h2>
     <ul class="roadmap-list">
       {% for feature in features %}
       <li>{{ feature }}</li>

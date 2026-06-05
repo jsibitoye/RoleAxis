@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% set is_register = mode == "register" %}
-{% block title %}{{ "Create Account" if is_register else "Sign In" }} | RoleAxis Evidence{% endblock %}
+{% block title %}{{ "Create Account" if is_register else "Sign In" }} | RoleAxis Command Cloud{% endblock %}
 {% block landing %}
 <header class="landing-nav">
   <a class="brand" href="/">
     <span class="brand-mark">RA</span>
     <span>
       <strong>RoleAxis</strong>
-      <small>Evidence</small>
+      <small>Command Cloud</small>
     </span>
   </a>
   <nav>
@@ -18,11 +18,10 @@
 
 <section class="auth-page">
   <div class="auth-copy">
-    <span class="eyebrow">RoleAxis Evidence Cloud</span>
+    <span class="eyebrow">RoleAxis Command Cloud</span>
     <h1>{{ "Create your business workspace" if is_register else "Welcome back" }}</h1>
     <p>
-      Securely manage cases, evidence, exports, and readiness intelligence inside an
-      account-isolated legal-tech workspace.
+      Securely manage desktop licensing, evidence workflows, career intelligence, local vault controls, and account-isolated case readiness.
     </p>
     <div class="trust-row">
       <span>HttpOnly sessions</span>
@@ -33,7 +32,7 @@
 
   <div class="auth-panel">
     <span class="eyebrow">{{ "New account" if is_register else "Account access" }}</span>
-    <h2>{{ "Start RoleAxis Evidence" if is_register else "Sign in to RoleAxis" }}</h2>
+    <h2>{{ "Start RoleAxis" if is_register else "Sign in to RoleAxis" }}</h2>
     {% if error %}<div class="alert">{{ error }}</div>{% endif %}
     <form method="post" action="{{ '/register' if is_register else '/login' }}" class="stacked-form">
       {% if is_register %}

@@ -5,15 +5,15 @@
 {% block content %}
 <section class="platform-hero">
   <div>
-    <span class="eyebrow">Desktop app required</span>
-    <h2>Interview Assistant runs locally on your workstation</h2>
+    <span class="eyebrow">RoleAxis Desktop required</span>
+    <h2>Interview Assistant is now part of the RoleAxis Desktop command suite</h2>
     <p>
       The web SaaS handles your account, subscription, device registration, and license state.
       Realtime audio capture, transcription, resume context, and interview guidance stay inside the local Windows desktop app.
     </p>
     <div class="button-row">
-      <a class="button primary" href="/downloads">Download App</a>
-      <a class="button secondary" href="roleaxis://interview-assistant">Launch App</a>
+      <a class="button primary" href="/downloads">Download RoleAxis Desktop</a>
+      <a class="button secondary" href="/account/devices">Manage Devices</a>
       <a class="button secondary" href="/career/interview-assistant/context.json">Export Context JSON</a>
     </div>
   </div>
@@ -42,7 +42,7 @@
   <article class="setting-panel">
     <span class="eyebrow">Desktop license flow</span>
     <h2>Cloud login, local execution</h2>
-    <p>The desktop app signs in through `/api/desktop/login`, stores only the returned local token, heartbeats to the SaaS, and stops when a device or subscription is revoked.</p>
+    <p>The desktop app signs in through `/api/desktop/login`, stores only the returned local token, sends heartbeat sync to the SaaS, and stops when a device or subscription is revoked.</p>
   </article>
   <article class="setting-panel">
     <span class="eyebrow">Vault context</span>
@@ -68,8 +68,12 @@
   </article>
   <article class="setting-panel">
     <span class="eyebrow">Installer</span>
-    <h2>{{ "Installer artifact found" if status.installer_exists else "Installer not committed" }}</h2>
-    <p>Installer output is intentionally ignored so large binaries are not committed.</p>
+    <h2>{{ "Installer artifact found" if status.installer_exists else "Installer not built yet" }}</h2>
+    {% if status.installer_exists %}
+    <p><a class="text-link" href="/downloads/desktop/installer">Download {{ status.installer_filename }}</a></p>
+    {% else %}
+    <p>Run the local installer build script, then return to Downloads to serve the setup file.</p>
+    {% endif %}
   </article>
 </section>
 

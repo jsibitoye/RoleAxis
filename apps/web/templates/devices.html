@@ -3,6 +3,14 @@
 {% block page_eyebrow %}Account Security{% endblock %}
 {% block page_title %}Desktop Devices{% endblock %}
 {% block content %}
+<section class="platform-hero">
+  <div>
+    <span class="eyebrow">Cloud sync and device audit</span>
+    <h2>See every workstation connected to RoleAxis Desktop.</h2>
+    <p>Desktop apps send license-aware heartbeats while running. Revoke a device here and its local session stops on the next sync check.</p>
+  </div>
+</section>
+
 <section class="metric-grid">
   <article class="metric-card">
     <span>Plan</span>
@@ -27,7 +35,7 @@
     <span class="eyebrow">Device registry</span>
     <h2>Registered local workstations</h2>
   </div>
-  <a class="button secondary" href="/downloads">Downloads</a>
+  <a class="button secondary" href="/downloads">Desktop Downloads</a>
 </section>
 
 {% if devices %}
@@ -40,6 +48,7 @@
         <th>Status</th>
         <th>Last seen</th>
         <th>Version</th>
+        <th>Sync health</th>
         <th></th>
       </tr>
     </thead>
@@ -54,6 +63,15 @@
         <td>{{ device.status }}</td>
         <td>{{ device.last_seen_at or "Not seen yet" }}</td>
         <td>{{ device.app_version or "Unknown" }}</td>
+        <td>
+          {% if device.status == "Revoked" %}
+          <span class="pill muted-pill">Revoked</span>
+          {% elif device.last_seen_at %}
+          <span class="pill">Heartbeat received</span>
+          {% else %}
+          <span class="pill muted-pill">Waiting</span>
+          {% endif %}
+        </td>
         <td>
           {% if device.status != "Revoked" %}
           <form method="post" action="/account/devices/{{ device.id }}/revoke">

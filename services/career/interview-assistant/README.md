@@ -1,6 +1,6 @@
-# RoleAxis Interview Assistant
+# RoleAxis Desktop
 
-Windows desktop assistant for live interview preparation inside the RoleAxis Career workspace.
+Windows desktop command center for Interview Assistant, Meeting Assistant, Presentation Assistant, Local Vault Agent, and Evidence Scanner.
 
 ## Requirements
 
@@ -28,7 +28,7 @@ dotnet build services\career\interview-assistant\RoleAxis.InterviewAssistant.csp
 ## Publish For Installer
 
 ```powershell
-dotnet publish services\career\interview-assistant\RoleAxis.InterviewAssistant.csproj --configuration Release --runtime win-x64 --self-contained false
+services\career\interview-assistant\build-installer.ps1
 ```
 
-The Inno Setup script reads from `bin\Release\net8.0-windows\win-x64\publish\` and creates `RoleAxis-Interview-Assistant-Setup.exe` in `installer-output\`.
+The installer script publishes `RoleAxis.Desktop.exe`, runs Inno Setup, and creates `RoleAxis-Desktop-Setup.exe` in `installer-output\`.

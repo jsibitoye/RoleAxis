@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}RoleAxis Evidence{% endblock %}</title>
+    <title>{% block title %}RoleAxis Command Cloud{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
   </head>
   <body class="{% if shell is defined and not shell %}landing-body{% else %}shell-body{% endif %}">
@@ -16,24 +16,23 @@
             <span class="brand-mark">RA</span>
             <span>
               <strong>RoleAxis</strong>
-              <small>Evidence</small>
+              <small>Command Cloud</small>
             </span>
           </a>
           <nav class="nav-list" aria-label="Primary navigation">
-            <a href="/app" class="{{ 'active' if active == 'app' else '' }}">Platform</a>
-            <a href="/evidence" class="{{ 'active' if workspace == 'evidence' else '' }}">Evidence</a>
-            <a href="/career" class="{{ 'active' if workspace == 'career' else '' }}">Career</a>
-            <a href="/vault" class="{{ 'active' if workspace == 'vault' else '' }}">Vault</a>
-            <a href="/downloads" class="{{ 'active' if active == 'downloads' else '' }}">Downloads</a>
-            <a href="/account/devices" class="{{ 'active' if active == 'devices' else '' }}">Devices</a>
-            <a href="/subscription" class="{{ 'active' if active == 'subscription' else '' }}">Subscription</a>
-            <a href="/settings" class="{{ 'active' if active == 'settings' else '' }}">Settings</a>
+            <a href="/app" class="{{ 'active' if active == 'app' else '' }}"><span>&#8962;</span>Dashboard</a>
+            <a href="/evidence" class="{{ 'active' if workspace == 'evidence' else '' }}"><span>&#9633;</span>Evidence</a>
+            <a href="/career" class="{{ 'active' if workspace == 'career' else '' }}"><span>&#9675;</span>Career</a>
+            <a href="/vault" class="{{ 'active' if workspace == 'vault' else '' }}"><span>&#9635;</span>Vault</a>
+            <a href="/downloads" class="{{ 'active' if active == 'downloads' else '' }}"><span>&#8681;</span>Downloads</a>
+            <a href="/account/devices" class="{{ 'active' if active == 'devices' else '' }}"><span>&#9649;</span>Devices</a>
+            <a href="/subscription" class="{{ 'active' if active == 'subscription' else '' }}"><span>&#9671;</span>Subscription</a>
+            <a href="/settings" class="{{ 'active' if active == 'settings' else '' }}"><span>&#9881;</span>Settings</a>
           </nav>
           {% if current_user is defined and current_user %}
           <div class="account-card">
             <span>{{ current_user.role }}</span>
             <strong>{{ current_user.full_name }}</strong>
-            <small>{{ current_user.company_name or current_user.email }}</small>
             <form method="post" action="/logout">
               <button type="submit">Sign out</button>
             </form>
@@ -41,21 +40,26 @@
           {% endif %}
           <div class="sidebar-note">
             <span>Secure SaaS workspace</span>
-            <strong>Account-isolated cases</strong>
+            <strong>Cloud sync active</strong>
           </div>
         </aside>
         <main class="main-area">
           <header class="topbar">
             <div>
               <span class="eyebrow">{% block page_eyebrow %}AI-powered professional intelligence{% endblock %}</span>
-              <h1>{% block page_title %}RoleAxis Evidence{% endblock %}</h1>
+              <h1>{% block page_title %}RoleAxis Command Cloud{% endblock %}</h1>
             </div>
             {% if current_user is defined and current_user %}
-            {% if workspace is defined and workspace == 'evidence' %}
-            <a class="button primary" href="/evidence/cases/create">New Workspace</a>
-            {% else %}
-            <a class="button primary" href="/app">App Launcher</a>
-            {% endif %}
+            <div class="topbar-actions">
+              <a class="icon-button" href="/account/devices" aria-label="Notifications">&#9679;</a>
+              <a class="manage-pill" href="/settings"><span>&#9817;</span>Manage account</a>
+              <span class="avatar-chip">{{ (current_user.full_name or current_user.email or "RA")[:1] }}</span>
+              {% if workspace is defined and workspace == 'evidence' %}
+              <a class="button primary" href="/evidence/cases/create">New Workspace</a>
+              {% else %}
+              <a class="button primary" href="/app">App Launcher</a>
+              {% endif %}
+            </div>
             {% endif %}
           </header>
           {% block content %}{% endblock %}

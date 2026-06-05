@@ -27,6 +27,46 @@ VAULT_STORAGE_MODES = (
     "Local + Encrypted Cloud Backup",
 )
 
+DESKTOP_HEARTBEAT_INTERVAL_SECONDS = 120
+
+DESKTOP_SUITE_MODULES = [
+    {
+        "id": "interview",
+        "name": "Interview Assistant",
+        "status": "Ready",
+        "privacy": "Local audio processing with cloud license sync",
+        "description": "Realtime transcript and answer support with resume and job-description context.",
+    },
+    {
+        "id": "meeting",
+        "name": "Meeting Assistant",
+        "status": "Ready",
+        "privacy": "Local audio processing with cloud license sync",
+        "description": "Live transcript, suggestions, decisions, actions, and follow-up drafting.",
+    },
+    {
+        "id": "presentation",
+        "name": "Presentation Assistant",
+        "status": "Ready",
+        "privacy": "Local material review, optional AI generation",
+        "description": "Preparation, live pacing, Q&A answers, debrief, and follow-up notes.",
+    },
+    {
+        "id": "vault",
+        "name": "Local Vault Agent",
+        "status": "Ready",
+        "privacy": "Local metadata index; files are not uploaded by default",
+        "description": "Private professional memory for credentials, projects, publications, and achievements.",
+    },
+    {
+        "id": "evidence",
+        "name": "Evidence Scanner",
+        "status": "Ready",
+        "privacy": "Local evidence discovery and package export",
+        "description": "Classify, score, approve, reject, edit, and package attorney-ready evidence locally.",
+    },
+]
+
 PLAN_DEFINITIONS = [
     {
         "name": "Free",
@@ -41,10 +81,13 @@ PLAN_DEFINITIONS = [
         "max_devices": 3,
         "max_active_sessions": 2,
         "features": [
-            "Interview Assistant desktop license",
-            "Vault Local Agent context",
-            "Evidence Scanner",
-            "Interview context export",
+            "RoleAxis Desktop command center",
+            "Interview Assistant",
+            "Meeting Assistant",
+            "Presentation Assistant",
+            "Local Vault Agent",
+            "Evidence Scanner package export",
+            "Cloud license and device sync",
         ],
     },
     {
@@ -53,10 +96,14 @@ PLAN_DEFINITIONS = [
         "max_devices": 10,
         "max_active_sessions": 5,
         "features": [
-            "Interview Assistant desktop license",
-            "Vault Local Agent context",
-            "Evidence Scanner",
+            "RoleAxis Desktop command center",
+            "Interview Assistant",
+            "Meeting Assistant",
+            "Presentation Assistant",
+            "Local Vault Agent",
+            "Evidence Scanner package export",
             "Team-ready device controls",
+            "Cloud license and device sync",
             "Priority rollout path",
         ],
     },
@@ -288,6 +335,39 @@ def subscription_payload(
     }
 
 
+def desktop_suite_manifest() -> dict[str, Any]:
+    return {
+        "name": "RoleAxis Desktop",
+        "version": "1.0.0",
+        "heartbeat_interval_seconds": DESKTOP_HEARTBEAT_INTERVAL_SECONDS,
+        "modules": DESKTOP_SUITE_MODULES,
+        "sync": {
+            "login": "/api/desktop/login",
+            "heartbeat": "/api/desktop/heartbeat",
+            "license": "/api/desktop/license",
+            "sync": "/api/desktop/sync",
+        },
+        "privacy": {
+            "local_files_upload_by_default": False,
+            "local_audio_upload_by_default": False,
+            "cloud_controls": ["license", "subscription", "device registry", "active session audit"],
+        },
+    }
+
+
+def desktop_cloud_payload(db: Session, user: User, subscription: UserSubscription | None = None) -> dict[str, Any]:
+    subscription = subscription or ensure_user_subscription(db, user)
+    return {
+        "desktop_suite": desktop_suite_manifest(),
+        "subscription": subscription_payload(db, user, subscription),
+        "features": plan_features(subscription.plan),
+        "vault": {
+            "storage_mode": user.vault_storage_mode,
+            "large_documents_upload_by_default": False,
+        },
+    }
+
+
 def desktop_login(
     db: Session,
     *,
@@ -371,11 +451,7 @@ def desktop_login(
             "started_at": desktop_session.started_at.isoformat(),
             "last_heartbeat_at": desktop_session.last_heartbeat_at.isoformat(),
         },
-        "subscription": subscription_payload(db, user, subscription),
-        "vault": {
-            "storage_mode": user.vault_storage_mode,
-            "large_documents_upload_by_default": False,
-        },
+        **desktop_cloud_payload(db, user, subscription),
     }
 
 
@@ -423,6 +499,8 @@ def desktop_heartbeat(
     token: str,
     device_fingerprint: str = "",
     app_version: str = "",
+    capabilities: list[str] | None = None,
+    local_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     session = active_session_for_token(db, token, device_fingerprint=device_fingerprint)
     now = utcnow()
@@ -436,7 +514,11 @@ def desktop_heartbeat(
         "ok": True,
         "last_heartbeat_at": session.last_heartbeat_at.isoformat() if session.last_heartbeat_at else None,
         "device": device_payload(session.device),
-        "subscription": subscription_payload(db, session.user),
+        "received": {
+            "capabilities": capabilities or [],
+            "local_state": local_state or {},
+        },
+        **desktop_cloud_payload(db, session.user),
     }
 
 
@@ -474,12 +556,7 @@ def desktop_license(db: Session, *, token: str, device_fingerprint: str = "") ->
             "started_at": session.started_at.isoformat(),
             "last_heartbeat_at": session.last_heartbeat_at.isoformat() if session.last_heartbeat_at else None,
         },
-        "subscription": subscription_payload(db, session.user),
-        "features": plan_features(active_subscription(db, session.user).plan),
-        "vault": {
-            "storage_mode": session.user.vault_storage_mode,
-            "large_documents_upload_by_default": False,
-        },
+        **desktop_cloud_payload(db, session.user),
     }
 
 

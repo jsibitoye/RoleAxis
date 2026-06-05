@@ -42,6 +42,7 @@ from apps.web.services.desktop import (
     VAULT_STORAGE_MODES,
     active_device_count,
     active_session_count,
+    desktop_suite_manifest,
     desktop_heartbeat,
     desktop_license,
     desktop_login,
@@ -256,8 +257,8 @@ def platform_app(
         {
             "name": "Desktop Apps",
             "href": "/downloads",
-            "status": "Licensed",
-            "description": "Install local assistants while RoleAxis Cloud manages plans, devices, and secure session access.",
+            "status": "Command suite",
+            "description": "Download RoleAxis Desktop for local interview, meeting, presentation, vault, and evidence workflows.",
         },
     ]
     return templates.TemplateResponse(
@@ -275,6 +276,7 @@ def downloads_page(
 ) -> object:
     status = get_interview_assistant_status()
     subscription = ensure_user_subscription(db, current_user)
+    suite = desktop_suite_manifest()
     return templates.TemplateResponse(
         request,
         "downloads.html",
@@ -283,6 +285,7 @@ def downloads_page(
             "subscription": subscription,
             "plan": subscription.plan,
             "features": plan_features(subscription.plan),
+            "suite": suite,
             "device_count": active_device_count(db, current_user),
             "active_session_count": active_session_count(db, current_user),
             "active": "downloads",
@@ -954,20 +957,20 @@ def career_dashboard(
         {
             "name": "Interview Assistant",
             "href": "/career/interview-assistant",
-            "status": "Desktop app ready",
+            "status": "Desktop ready",
             "description": "Realtime interview transcription and answer assistance with resume and job-description context.",
         },
         {
             "name": "Presentation Assistant",
-            "href": "#",
-            "status": "Planned",
-            "description": "Prepare, rehearse, and refine high-stakes presentations.",
+            "href": "/downloads",
+            "status": "Desktop ready",
+            "description": "Prepare, rehearse, answer live questions, and generate follow-up notes inside RoleAxis Desktop.",
         },
         {
             "name": "Meeting Assistant",
-            "href": "#",
-            "status": "Planned",
-            "description": "Capture decisions, summarize meetings, and turn discussions into follow-ups.",
+            "href": "/downloads",
+            "status": "Desktop ready",
+            "description": "Capture live transcript, decisions, risks, action items, and follow-up emails locally.",
         },
         {
             "name": "Job Search",
@@ -1167,6 +1170,14 @@ async def desktop_heartbeat_api(
             token=str(payload.get("session_token") or payload.get("token") or ""),
             device_fingerprint=str(payload.get("device_fingerprint") or ""),
             app_version=str(payload.get("app_version") or ""),
+            capabilities=[
+                str(item)
+                for item in payload.get("capabilities", [])
+                if str(item).strip()
+            ]
+            if isinstance(payload.get("capabilities"), list)
+            else [],
+            local_state=payload.get("local_state") if isinstance(payload.get("local_state"), dict) else {},
         )
     except DesktopLicenseError as exc:
         return desktop_error_response(exc)
@@ -1210,6 +1221,42 @@ def desktop_license_api(
     except DesktopLicenseError as exc:
         return desktop_error_response(exc)
     return JSONResponse({"ok": True, **result})
+
+
+@app.get("/api/desktop/sync")
+def desktop_sync_api(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> JSONResponse:
+    try:
+        result = desktop_license(
+            db,
+            token=bearer_token(request),
+            device_fingerprint=request.query_params.get("device_fingerprint") or "",
+        )
+    except DesktopLicenseError as exc:
+        return desktop_error_response(exc)
+    return JSONResponse({"ok": True, "sync_status": "Connected", **result})
+
+
+@app.get("/downloads/desktop/installer")
+def download_desktop_installer(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    subscription = ensure_user_subscription(db, current_user)
+    if not subscription.plan or subscription.plan.name == "Free":
+        raise HTTPException(status_code=403, detail="A licensed desktop plan is required.")
+
+    status = get_interview_assistant_status()
+    if not status.installer_exists or status.installer_file is None or not status.installer_file.exists():
+        raise HTTPException(status_code=404, detail="Desktop installer artifact has not been built yet.")
+
+    return FileResponse(
+        status.installer_file,
+        filename=status.installer_filename,
+        media_type="application/vnd.microsoft.portable-executable",
+    )
 
 
 @app.get("/packages/{package_id}/download")
