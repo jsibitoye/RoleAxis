@@ -29,17 +29,28 @@
 - Reviewer concerns
 - ZIP package export
 - RoleAxis Career shell
-- Web-native Interview Assistant sessions
-- Browser transcript capture with manual fallback
-- Server-side interview answer coaching
-- Legacy Windows Interview Assistant source and build flow
+- Desktop-first Windows Interview Assistant source and build flow
+- Downloads page for local desktop assistants
+- Subscription plan records for Free, Pro, and Business
+- User subscription records with local Pro seeding for test users
+- Desktop device registry and revocation
+- Desktop session tokens stored as hashes
+- Desktop login, heartbeat, logout, and license API
+- Interview context JSON export placeholder
 - RoleAxis Vault shell
+- Vault local-first storage mode setting
 
 ## Next
 
 - Account recovery and email verification
 - Organization/team invitations
-- Cloud object storage
+- Payment checkout and plan upgrades
+- Signed installer release workflow for Interview Assistant
+- Desktop app integration with `/api/desktop/*`
+- RoleAxis protocol launch handling
+- Vault Local Agent for desktop-side resume, job, and credential context
+- Cloud metadata sync for Vault without document uploads
+- Cloud object storage for explicit future encrypted backups
 - Background processing for large imports and packages
 - Editable evidence ordering
 - PDF exhibit dividers from the web UI
@@ -49,9 +60,6 @@
 - Real connector-backed discovery jobs
 - Reputation scanner using public sources
 - Career AI Core service extraction
-- Streaming interview responses
-- Browser WebRTC realtime interview mode
-- Interview Assistant installer release workflow for local/enterprise desktop use
 - Vault profile and document models
 
 ## Later

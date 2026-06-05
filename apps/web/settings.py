@@ -23,8 +23,7 @@ class AppSettings(BaseSettings):
     document_organizer_config_dir: Path = BASE_DIR / "services" / "evidence" / "document-organizer" / "configs"
     email_crawler_reports_dir: Path = BASE_DIR / "services" / "evidence" / "email-crawler" / "data" / "reports"
     interview_assistant_dir: Path = BASE_DIR / "services" / "career" / "interview-assistant"
-    openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
-    interview_answer_model: str = Field(default="gpt-4o-mini", alias="ROLEAXIS_INTERVIEW_MODEL")
+    seed_local_pro_subscriptions: bool = Field(default=True, alias="ROLEAXIS_SEED_LOCAL_PRO_SUBSCRIPTIONS")
     allowed_upload_extensions_raw: str = Field(
         default=".pdf,.doc,.docx,.pptx,.jpg,.jpeg,.png,.tif,.tiff,.txt,.csv,.xlsx,.zip",
         alias="ROLEAXIS_ALLOWED_UPLOAD_EXTENSIONS",

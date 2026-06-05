@@ -5,10 +5,27 @@
 {% block content %}
 <section class="platform-hero">
   <div>
-    <span class="eyebrow">Central professional record</span>
+    <span class="eyebrow">Local-first professional record</span>
     <h2>Your long-term career and evidence memory layer</h2>
-    <p>RoleAxis Vault will power reusable professional profiles, credentials, achievements, and documents across every workspace.</p>
+    <p>RoleAxis Vault powers reusable professional context while keeping large local documents off the cloud by default.</p>
+    <div class="button-row">
+      <a class="button primary" href="/vault/settings">Vault Settings</a>
+      <a class="button secondary" href="/career/interview-assistant/context.json">Export Interview Context</a>
+    </div>
   </div>
+</section>
+
+<section class="settings-grid">
+  <article class="setting-panel">
+    <span class="eyebrow">Storage mode</span>
+    <h2>{{ current_user.vault_storage_mode }}</h2>
+    <p>Desktop assistants use local context first. RoleAxis Cloud does not upload large Vault documents unless a future encrypted backup mode is explicitly enabled.</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Available modes</span>
+    <h2>{{ storage_modes|length }} options</h2>
+    <p>Local Only, Local + Cloud Metadata, and future Local + Encrypted Cloud Backup.</p>
+  </article>
 </section>
 
 <section class="workspace-grid compact-grid">

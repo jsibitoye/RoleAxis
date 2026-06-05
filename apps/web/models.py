@@ -22,11 +22,24 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(Text, nullable=False, default="")
     role: Mapped[str] = mapped_column(String(80), nullable=False, default="Owner")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    vault_storage_mode: Mapped[str] = mapped_column(String(80), nullable=False, default="Local Only")
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
     cases: Mapped[list["Case"]] = relationship(back_populates="user")
     sessions: Mapped[list["AuthSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    desktop_devices: Mapped[list["DesktopDevice"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    desktop_sessions: Mapped[list["DesktopSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    subscriptions: Mapped[list["UserSubscription"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )
@@ -43,6 +56,77 @@ class AuthSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="sessions")
+
+
+class SubscriptionPlan(Base):
+    __tablename__ = "subscription_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
+    price: Mapped[str] = mapped_column(String(80), nullable=False, default="$0")
+    max_devices: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    max_active_sessions: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    features_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+
+    subscriptions: Mapped[list["UserSubscription"]] = relationship(back_populates="plan")
+
+
+class UserSubscription(Base):
+    __tablename__ = "user_subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("subscription_plans.id"), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(80), nullable=False, default="Active", index=True)
+    current_period_start: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    current_period_end: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=utcnow,
+        onupdate=utcnow,
+        nullable=False,
+    )
+
+    user: Mapped[User] = relationship(back_populates="subscriptions")
+    plan: Mapped[SubscriptionPlan] = relationship(back_populates="subscriptions")
+
+
+class DesktopDevice(Base):
+    __tablename__ = "desktop_devices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    device_name: Mapped[str] = mapped_column(String(255), nullable=False, default="Local workstation")
+    device_fingerprint: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    platform: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    app_version: Mapped[str] = mapped_column(String(80), nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(80), nullable=False, default="Active", index=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="desktop_devices")
+    sessions: Mapped[list["DesktopSession"]] = relationship(
+        back_populates="device",
+        cascade="all, delete-orphan",
+    )
+
+
+class DesktopSession(Base):
+    __tablename__ = "desktop_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    device_id: Mapped[int] = mapped_column(ForeignKey("desktop_devices.id"), nullable=False, index=True)
+    session_token_hash: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(80), nullable=False, default="Active", index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    last_heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="desktop_sessions")
+    device: Mapped[DesktopDevice] = relationship(back_populates="sessions")
 
 
 class Case(Base):
@@ -159,40 +243,6 @@ class CaseInsight(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
     case: Mapped[Case] = relationship(back_populates="insights")
-
-
-class InterviewSession(Base):
-    __tablename__ = "interview_sessions"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
-    target_role: Mapped[str] = mapped_column(String(255), nullable=False, default="")
-    company_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
-    interview_type: Mapped[str] = mapped_column(String(120), nullable=False, default="Behavioral")
-    resume_context: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    job_description: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    status: Mapped[str] = mapped_column(String(80), nullable=False, default="Active")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=utcnow,
-        onupdate=utcnow,
-        nullable=False,
-    )
-
-
-class InterviewTurn(Base):
-    __tablename__ = "interview_turns"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    session_id: Mapped[int] = mapped_column(ForeignKey("interview_sessions.id"), nullable=False, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    mode: Mapped[str] = mapped_column(String(120), nullable=False, default="Concise")
-    question: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    transcript_excerpt: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
 
 class EvidenceSourcePermission(Base):

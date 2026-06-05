@@ -6,7 +6,7 @@ RoleAxis is a professional intelligence SaaS platform with three workspaces:
 - **RoleAxis Career**: interview, presentation, meeting, job-search, and resume intelligence.
 - **RoleAxis Vault**: canonical professional profile, credentials, achievements, and document memory.
 
-The current web app ships the full account flow, `/app` launcher, a working Evidence workspace, a web-native Career Interview Assistant, and the legacy Windows assistant source.
+The current web app ships the full account flow, `/app` launcher, a working Evidence workspace, and the SaaS control plane for local desktop assistants.
 
 ## Run Locally
 
@@ -28,8 +28,11 @@ Open <http://127.0.0.1:8000>.
 - Evidence: <http://127.0.0.1:8000/evidence>
 - Evidence workspace create: <http://127.0.0.1:8000/evidence/cases/create>
 - Career: <http://127.0.0.1:8000/career>
-- Web Interview Assistant: <http://127.0.0.1:8000/career/interview-assistant>
+- Downloads: <http://127.0.0.1:8000/downloads>
+- Devices: <http://127.0.0.1:8000/account/devices>
+- Subscription: <http://127.0.0.1:8000/subscription>
 - Vault: <http://127.0.0.1:8000/vault>
+- Vault settings: <http://127.0.0.1:8000/vault/settings>
 
 ## What Works Now
 
@@ -47,30 +50,30 @@ Open <http://127.0.0.1:8000>.
 - Generate readiness insights using rule-based scoring.
 - Open Evidence Intelligence for gap analysis, roadmap, discovery missions, professional timeline, achievement graph, relationship map, reputation score, and reviewer concerns.
 - Export an attorney-ready ZIP with organized folders, evidence table, evidence index, case summary, readiness insights, professional timeline, and case readiness roadmap.
-- Open RoleAxis Career and run browser-based Interview Assistant sessions.
-- Use manual transcript or browser microphone capture, then ask the server-side assistant for answer coaching.
-- Store per-user interview rooms and answer history.
-- Use `OPENAI_API_KEY` on the server for model-backed answers, with a local fallback for development.
-- Open RoleAxis Vault module placeholders for profile, resume, credentials, projects, publications, awards, and achievements.
+- Open RoleAxis Career and verify the desktop Interview Assistant source/build status.
+- Open Downloads, Devices, and Subscription pages for desktop licensing and device management.
+- Use desktop API endpoints for login, heartbeat, logout, and license checks.
+- Revoke desktop devices from the web account area.
+- Open RoleAxis Vault module placeholders and choose a local-first Vault storage mode.
 
 ## Interview Assistant
 
-The SaaS Interview Assistant runs from `/career/interview-assistant`. Create a web interview room, paste resume/job context, capture or type the interviewer question, and ask for coaching.
-
-For model-backed answers, set a server-side key before starting FastAPI:
-
-```powershell
-$env:OPENAI_API_KEY = "sk-..."
-$env:ROLEAXIS_INTERVIEW_MODEL = "gpt-4o-mini"
-```
-
-The original Windows desktop assistant remains at `services/career/interview-assistant/` as a legacy local artifact:
+The Interview Assistant remains a local Windows desktop app at `services/career/interview-assistant/`. RoleAxis Cloud handles account login, subscription status, device registration, session limits, and revocation. The realtime assistant itself runs locally because audio capture, desktop workflow context, and fast response loops belong on the workstation.
 
 ```powershell
 dotnet build services\career\interview-assistant\RoleAxis.InterviewAssistant.csproj --configuration Release
 ```
 
-Do not commit real API keys.
+For local development, set `OPENAI_API_KEY` or copy `config.example.json` to an ignored local `config.json`. Do not commit real API keys.
+
+The desktop app should call:
+
+- `POST /api/desktop/login`
+- `POST /api/desktop/heartbeat`
+- `POST /api/desktop/logout`
+- `GET /api/desktop/license`
+
+Local seeded test users can receive Pro subscriptions when `ROLEAXIS_SEED_LOCAL_PRO_SUBSCRIPTIONS=true` in `.env`.
 
 ## Project Layout
 
@@ -100,7 +103,11 @@ data/                             Local SQLite database, ignored by git
 - `.env` is ignored and `.env.example` contains safe placeholders only.
 - Passwords are stored with PBKDF2-SHA256 hashes, never plaintext.
 - Sessions are stored server-side and issued with HttpOnly cookies.
+- Desktop session tokens are stored as hashes and the plaintext token is returned only once at desktop login.
+- Revoked desktop devices are blocked from heartbeat and license checks.
 - Users can only access cases and export packages that belong to their account.
+- Users can only see and revoke desktop devices registered to their own account.
 - Uploads, exports, databases, build outputs, logs, and local API-key config files are ignored by git.
+- Vault is local-first and does not upload large local documents by default.
 - Upload filenames are sanitized before storage.
 - File type and size validation run before an upload is accepted.

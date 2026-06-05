@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Subscription | RoleAxis{% endblock %}
+{% block page_eyebrow %}Billing Foundation{% endblock %}
+{% block page_title %}Subscription{% endblock %}
+{% block content %}
+<section class="platform-hero">
+  <div>
+    <span class="eyebrow">Current plan</span>
+    <h2>{{ plan.name }} access</h2>
+    <p>
+      Your plan controls desktop device limits, active local sessions, and which assistants can unlock through the RoleAxis desktop API.
+    </p>
+    <div class="trust-row">
+      <span>{{ subscription.status }}</span>
+      <span>{{ device_count }} of {{ plan.max_devices }} devices</span>
+      <span>{{ active_session_count }} of {{ plan.max_active_sessions }} sessions</span>
+    </div>
+  </div>
+</section>
+
+<section class="workspace-grid">
+  {% for available_plan in plans %}
+  <article class="workspace-card {{ 'selected-card' if available_plan.id == plan.id else '' }}">
+    <span class="pill">{{ "Current" if available_plan.id == plan.id else available_plan.price }}</span>
+    <h3>{{ available_plan.name }}</h3>
+    <p>{{ available_plan.max_devices }} desktop device{{ "" if available_plan.max_devices == 1 else "s" }} and {{ available_plan.max_active_sessions }} active session{{ "" if available_plan.max_active_sessions == 1 else "s" }}.</p>
+    <ul class="roadmap-list">
+      {% for feature in plan_features(available_plan) %}
+      <li>{{ feature }}</li>
+      {% endfor %}
+    </ul>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="empty-state">
+  <span class="eyebrow">Payments later</span>
+  <h2>Plan enforcement is active; checkout is still a future integration.</h2>
+  <p>The MVP stores subscription state and enforces desktop license limits, which gives the desktop apps a real SaaS control plane before payment processing is connected.</p>
+</section>
+{% endblock %}

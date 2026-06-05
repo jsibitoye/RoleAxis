@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Annotated
 
@@ -15,14 +14,15 @@ from apps.web.database import get_db, init_db
 from apps.web.models import (
     Case,
     CaseInsight,
+    DesktopDevice,
+    DesktopSession,
     EvidenceCandidate,
     EvidenceDiscoveryJob,
     EvidenceImport,
     EvidenceItem,
     EvidenceSourcePermission,
     ExportPackage,
-    InterviewSession,
-    InterviewTurn,
+    SubscriptionPlan,
     User,
 )
 from apps.web.services.auth import (
@@ -37,6 +37,20 @@ from apps.web.services.auth import (
     set_session_cookie,
 )
 from apps.web.services.career import get_interview_assistant_status
+from apps.web.services.desktop import (
+    DesktopLicenseError,
+    VAULT_STORAGE_MODES,
+    active_device_count,
+    active_session_count,
+    desktop_heartbeat,
+    desktop_license,
+    desktop_login,
+    desktop_logout,
+    ensure_user_subscription,
+    plan_features,
+    revoke_device,
+    subscription_payload,
+)
 from apps.web.services.discovery import approve_candidate, build_case_intelligence, create_discovery_job, reject_candidate
 from apps.web.services.email_importer import import_email_candidates
 from apps.web.services.evidence_framework import (
@@ -47,14 +61,6 @@ from apps.web.services.evidence_framework import (
 )
 from apps.web.services.exporter import build_export_package
 from apps.web.services.insights import analyze_case, parse_json_list
-from apps.web.services.interview import (
-    ANSWER_MODES,
-    INTERVIEW_TYPES,
-    create_interview_session,
-    generate_interview_answer,
-    get_interview_session_or_404,
-    record_interview_turn,
-)
 from apps.web.services.organizer import (
     CASE_TYPES,
     EVIDENCE_CATEGORIES,
@@ -95,6 +101,20 @@ def latest_insight(db: Session, case_id: int) -> CaseInsight | None:
         .order_by(CaseInsight.created_at.desc())
         .first()
     )
+
+
+def desktop_error_response(error: DesktopLicenseError) -> JSONResponse:
+    return JSONResponse(
+        {"ok": False, "error": {"code": error.code, "message": error.message}},
+        status_code=error.status_code,
+    )
+
+
+def bearer_token(request: Request) -> str:
+    authorization = request.headers.get("authorization", "")
+    if authorization.lower().startswith("bearer "):
+        return authorization.split(" ", 1)[1].strip()
+    return request.query_params.get("session_token") or request.query_params.get("token") or ""
 
 
 @app.get("/")
@@ -230,14 +250,120 @@ def platform_app(
         {
             "name": "Vault",
             "href": "/vault",
-            "status": "Planned",
-            "description": "A central professional profile for credentials, projects, publications, and achievements.",
+            "status": "Local-first",
+            "description": "A private professional memory layer for credentials, projects, publications, and achievements.",
+        },
+        {
+            "name": "Desktop Apps",
+            "href": "/downloads",
+            "status": "Licensed",
+            "description": "Install local assistants while RoleAxis Cloud manages plans, devices, and secure session access.",
         },
     ]
     return templates.TemplateResponse(
         request,
         "app.html",
         {"workspaces": workspaces, "active": "app", "current_user": current_user},
+    )
+
+
+@app.get("/downloads")
+def downloads_page(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    status = get_interview_assistant_status()
+    subscription = ensure_user_subscription(db, current_user)
+    return templates.TemplateResponse(
+        request,
+        "downloads.html",
+        {
+            "status": status,
+            "subscription": subscription,
+            "plan": subscription.plan,
+            "features": plan_features(subscription.plan),
+            "device_count": active_device_count(db, current_user),
+            "active_session_count": active_session_count(db, current_user),
+            "active": "downloads",
+            "workspace": "account",
+            "current_user": current_user,
+        },
+    )
+
+
+@app.get("/account/devices")
+def account_devices_page(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    subscription = ensure_user_subscription(db, current_user)
+    devices = (
+        db.query(DesktopDevice)
+        .filter(DesktopDevice.user_id == current_user.id)
+        .order_by(DesktopDevice.created_at.desc())
+        .all()
+    )
+    sessions = (
+        db.query(DesktopSession)
+        .filter(DesktopSession.user_id == current_user.id)
+        .order_by(DesktopSession.started_at.desc())
+        .limit(20)
+        .all()
+    )
+    return templates.TemplateResponse(
+        request,
+        "devices.html",
+        {
+            "subscription": subscription,
+            "plan": subscription.plan,
+            "devices": devices,
+            "sessions": sessions,
+            "device_count": active_device_count(db, current_user),
+            "active_session_count": active_session_count(db, current_user),
+            "active": "devices",
+            "workspace": "account",
+            "current_user": current_user,
+        },
+    )
+
+
+@app.post("/account/devices/{device_id}/revoke")
+def revoke_account_device(
+    device_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    try:
+        revoke_device(db, current_user, device_id)
+    except DesktopLicenseError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+    return RedirectResponse("/account/devices", status_code=303)
+
+
+@app.get("/subscription")
+def subscription_page(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    subscription = ensure_user_subscription(db, current_user)
+    plans = db.query(SubscriptionPlan).order_by(SubscriptionPlan.id.asc()).all()
+    return templates.TemplateResponse(
+        request,
+        "subscription.html",
+        {
+            "subscription": subscription,
+            "plan": subscription.plan,
+            "plans": plans,
+            "plan_features": plan_features,
+            "device_count": active_device_count(db, current_user),
+            "active_session_count": active_session_count(db, current_user),
+            "active": "subscription",
+            "workspace": "account",
+            "current_user": current_user,
+        },
     )
 
 
@@ -828,8 +954,8 @@ def career_dashboard(
         {
             "name": "Interview Assistant",
             "href": "/career/interview-assistant",
-            "status": "Web app ready",
-            "description": "Browser-based live interview room with transcript capture and answer coaching.",
+            "status": "Desktop app ready",
+            "description": "Realtime interview transcription and answer assistance with resume and job-description context.",
         },
         {
             "name": "Presentation Assistant",
@@ -870,21 +996,17 @@ def interview_assistant_page(
     current_user: Annotated[User, Depends(require_user)],
 ) -> object:
     status = get_interview_assistant_status()
-    sessions = (
-        db.query(InterviewSession)
-        .filter(InterviewSession.user_id == current_user.id)
-        .order_by(InterviewSession.updated_at.desc())
-        .limit(8)
-        .all()
-    )
+    subscription = ensure_user_subscription(db, current_user)
     return templates.TemplateResponse(
         request,
         "interview_assistant.html",
         {
             "status": status,
-            "sessions": sessions,
-            "interview_types": INTERVIEW_TYPES,
-            "api_enabled": bool(settings.openai_api_key),
+            "subscription": subscription,
+            "plan": subscription.plan,
+            "features": plan_features(subscription.plan),
+            "device_count": active_device_count(db, current_user),
+            "active_session_count": active_session_count(db, current_user),
             "active": "career",
             "workspace": "career",
             "current_user": current_user,
@@ -892,97 +1014,32 @@ def interview_assistant_page(
     )
 
 
-@app.post("/career/interview-assistant/sessions")
-def create_web_interview_session(
+@app.get("/career/interview-assistant/context.json")
+def interview_context_export(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_user)],
-    title: Annotated[str, Form()] = "",
-    target_role: Annotated[str, Form()] = "",
-    company_name: Annotated[str, Form()] = "",
-    interview_type: Annotated[str, Form()] = "Behavioral",
-    resume_context: Annotated[str, Form()] = "",
-    job_description: Annotated[str, Form()] = "",
-) -> object:
-    session = create_interview_session(
-        db,
-        user_id=current_user.id,
-        title=title,
-        target_role=target_role,
-        company_name=company_name,
-        interview_type=interview_type,
-        resume_context=resume_context,
-        job_description=job_description,
-    )
-    return RedirectResponse(f"/career/interview-assistant/sessions/{session.id}", status_code=303)
-
-
-@app.get("/career/interview-assistant/sessions/{session_id}")
-def web_interview_room(
-    request: Request,
-    session_id: int,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_user)],
-) -> object:
-    session = get_interview_session_or_404(db, session_id, current_user.id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Interview session not found")
-    turns = (
-        db.query(InterviewTurn)
-        .filter(InterviewTurn.session_id == session.id, InterviewTurn.user_id == current_user.id)
-        .order_by(InterviewTurn.created_at.desc())
-        .limit(12)
-        .all()
-    )
-    return templates.TemplateResponse(
-        request,
-        "interview_room.html",
-        {
-            "session": session,
-            "turns": turns,
-            "answer_modes": ANSWER_MODES,
-            "api_enabled": bool(settings.openai_api_key),
-            "active": "career",
-            "workspace": "career",
-            "current_user": current_user,
-        },
-    )
-
-
-@app.post("/career/interview-assistant/sessions/{session_id}/ask")
-async def ask_web_interview_assistant(
-    request: Request,
-    session_id: int,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_user)],
-) -> object:
-    session = get_interview_session_or_404(db, session_id, current_user.id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Interview session not found")
-    try:
-        payload = await request.json()
-    except json.JSONDecodeError:
-        payload = {}
-    question = str(payload.get("question") or "").strip()
-    transcript = str(payload.get("transcript") or "").strip()
-    mode = str(payload.get("mode") or "Concise").strip()
-    if not question and not transcript:
-        return JSONResponse({"error": "Add a question or transcript first."}, status_code=400)
-    answer = generate_interview_answer(session, question, transcript, mode)
-    turn = record_interview_turn(
-        db,
-        session=session,
-        user_id=current_user.id,
-        question=question,
-        transcript=transcript,
-        mode=mode,
-        answer=answer.answer,
-    )
+) -> JSONResponse:
+    subscription = ensure_user_subscription(db, current_user)
     return JSONResponse(
         {
-            "answer": answer.answer,
-            "used_ai": answer.used_ai,
-            "turn_id": turn.id,
-            "created_at": turn.created_at.isoformat(),
+            "version": 1,
+            "generated_for": {
+                "user_id": current_user.id,
+                "email": current_user.email,
+                "full_name": current_user.full_name,
+            },
+            "subscription": subscription_payload(db, current_user, subscription),
+            "vault": {
+                "storage_mode": current_user.vault_storage_mode,
+                "large_documents_upload_by_default": False,
+                "context_sources": [],
+            },
+            "interview": {
+                "sessions": [],
+                "resume": None,
+                "job_description": None,
+                "notes": "Placeholder context export for the local desktop Interview Assistant.",
+            },
         }
     )
 
@@ -1005,8 +1062,154 @@ def vault_dashboard(
     return templates.TemplateResponse(
         request,
         "vault.html",
-        {"modules": modules, "active": "vault", "workspace": "vault", "current_user": current_user},
+        {
+            "modules": modules,
+            "storage_modes": VAULT_STORAGE_MODES,
+            "active": "vault",
+            "workspace": "vault",
+            "current_user": current_user,
+        },
     )
+
+
+@app.get("/vault/settings")
+def vault_settings_page(
+    request: Request,
+    current_user: Annotated[User, Depends(require_user)],
+) -> object:
+    return templates.TemplateResponse(
+        request,
+        "vault_settings.html",
+        {
+            "storage_modes": VAULT_STORAGE_MODES,
+            "active": "vault-settings",
+            "workspace": "vault",
+            "current_user": current_user,
+        },
+    )
+
+
+@app.post("/vault/settings")
+def update_vault_settings(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_user)],
+    vault_storage_mode: Annotated[str, Form()],
+) -> object:
+    if vault_storage_mode not in VAULT_STORAGE_MODES:
+        return templates.TemplateResponse(
+            request,
+            "vault_settings.html",
+            {
+                "storage_modes": VAULT_STORAGE_MODES,
+                "error": "Choose a supported Vault storage mode.",
+                "active": "vault-settings",
+                "workspace": "vault",
+                "current_user": current_user,
+            },
+            status_code=400,
+        )
+    current_user.vault_storage_mode = vault_storage_mode
+    db.commit()
+    return RedirectResponse("/vault/settings", status_code=303)
+
+
+@app.post("/api/desktop/login")
+async def desktop_login_api(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> JSONResponse:
+    try:
+        payload = await request.json()
+    except Exception:
+        return desktop_error_response(
+            DesktopLicenseError("Send a valid JSON desktop login payload.", status_code=400, code="invalid_json")
+        )
+    if not isinstance(payload, dict):
+        return desktop_error_response(
+            DesktopLicenseError("Send a valid JSON desktop login payload.", status_code=400, code="invalid_json")
+        )
+
+    try:
+        result = desktop_login(
+            db,
+            login=str(payload.get("login") or payload.get("email") or payload.get("username") or ""),
+            password=str(payload.get("password") or ""),
+            device_name=str(payload.get("device_name") or "Local workstation"),
+            device_fingerprint=str(payload.get("device_fingerprint") or ""),
+            platform=str(payload.get("platform") or ""),
+            app_version=str(payload.get("app_version") or ""),
+        )
+    except DesktopLicenseError as exc:
+        return desktop_error_response(exc)
+    return JSONResponse({"ok": True, **result})
+
+
+@app.post("/api/desktop/heartbeat")
+async def desktop_heartbeat_api(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> JSONResponse:
+    try:
+        payload = await request.json()
+    except Exception:
+        return desktop_error_response(
+            DesktopLicenseError("Send a valid JSON heartbeat payload.", status_code=400, code="invalid_json")
+        )
+    if not isinstance(payload, dict):
+        return desktop_error_response(
+            DesktopLicenseError("Send a valid JSON heartbeat payload.", status_code=400, code="invalid_json")
+        )
+
+    try:
+        result = desktop_heartbeat(
+            db,
+            token=str(payload.get("session_token") or payload.get("token") or ""),
+            device_fingerprint=str(payload.get("device_fingerprint") or ""),
+            app_version=str(payload.get("app_version") or ""),
+        )
+    except DesktopLicenseError as exc:
+        return desktop_error_response(exc)
+    return JSONResponse(result)
+
+
+@app.post("/api/desktop/logout")
+async def desktop_logout_api(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> JSONResponse:
+    try:
+        payload = await request.json()
+    except Exception:
+        return desktop_error_response(
+            DesktopLicenseError("Send a valid JSON logout payload.", status_code=400, code="invalid_json")
+        )
+    if not isinstance(payload, dict):
+        return desktop_error_response(
+            DesktopLicenseError("Send a valid JSON logout payload.", status_code=400, code="invalid_json")
+        )
+
+    try:
+        result = desktop_logout(db, token=str(payload.get("session_token") or payload.get("token") or ""))
+    except DesktopLicenseError as exc:
+        return desktop_error_response(exc)
+    return JSONResponse(result)
+
+
+@app.get("/api/desktop/license")
+def desktop_license_api(
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> JSONResponse:
+    try:
+        result = desktop_license(
+            db,
+            token=bearer_token(request),
+            device_fingerprint=request.query_params.get("device_fingerprint") or "",
+        )
+    except DesktopLicenseError as exc:
+        return desktop_error_response(exc)
+    return JSONResponse({"ok": True, **result})
 
 
 @app.get("/packages/{package_id}/download")

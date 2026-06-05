@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Downloads | RoleAxis{% endblock %}
+{% block page_eyebrow %}RoleAxis Desktop{% endblock %}
+{% block page_title %}Downloads{% endblock %}
+{% block content %}
+<section class="platform-hero">
+  <div>
+    <span class="eyebrow">Local assistants, cloud licensing</span>
+    <h2>Install the desktop tools that need local audio and files</h2>
+    <p>
+      RoleAxis Cloud manages accounts, plans, devices, and secure license checks.
+      Interview Assistant runs locally so realtime audio and desktop workflows stay on the workstation.
+    </p>
+    <div class="button-row">
+      <a class="button primary" href="/career/interview-assistant">Interview Assistant</a>
+      <a class="button secondary" href="/account/devices">Manage Devices</a>
+    </div>
+  </div>
+</section>
+
+<section class="settings-grid">
+  <article class="setting-panel">
+    <span class="eyebrow">Interview Assistant</span>
+    <h2>Windows desktop app</h2>
+    <p>Current plan: <strong>{{ plan.name }}</strong>. Device usage: {{ device_count }} of {{ plan.max_devices }}.</p>
+    {% if status.installer_exists %}
+    <a class="button primary" href="#">Download Installer</a>
+    {% else %}
+    <span class="button secondary disabled">Installer artifact not uploaded</span>
+    {% endif %}
+    <p class="muted">Build outputs and installer binaries remain local artifacts until a release pipeline publishes them.</p>
+  </article>
+
+  <article class="setting-panel">
+    <span class="eyebrow">License limits</span>
+    <h2>{{ active_session_count }} active desktop session{{ "" if active_session_count == 1 else "s" }}</h2>
+    <p>Desktop apps sign in through `/api/desktop/login`, heartbeat through `/api/desktop/heartbeat`, and stop when a device is revoked.</p>
+    <ul class="roadmap-list">
+      {% for feature in features %}
+      <li>{{ feature }}</li>
+      {% endfor %}
+    </ul>
+  </article>
+</section>
+{% endblock %}

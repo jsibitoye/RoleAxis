@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Vault Settings | RoleAxis{% endblock %}
+{% block page_eyebrow %}RoleAxis Vault{% endblock %}
+{% block page_title %}Vault Settings{% endblock %}
+{% block content %}
+<section class="form-panel">
+  <span class="eyebrow">Local-first storage</span>
+  <h2>Choose how Vault context is shared with RoleAxis Cloud</h2>
+  <p class="muted">
+    Large local Vault documents are not uploaded by default. Desktop assistants can use local context while the web account stores only the selected storage mode.
+  </p>
+  {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="/vault/settings" class="stacked-form">
+    <label>
+      Storage mode
+      <select name="vault_storage_mode" required>
+        {% for mode in storage_modes %}
+        <option value="{{ mode }}" {% if current_user.vault_storage_mode == mode %}selected{% endif %}>{{ mode }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="button primary" type="submit">Save Vault Settings</button>
+  </form>
+</section>
+
+<section class="settings-grid">
+  <article class="setting-panel">
+    <span class="eyebrow">Local Only</span>
+    <h2>Private workstation context</h2>
+    <p>Documents and structured records stay on the desktop. The cloud account only tracks your setting and license.</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Local + Cloud Metadata</span>
+    <h2>Indexes without document upload</h2>
+    <p>Future Vault agents can sync titles, tags, and freshness metadata while keeping the underlying files local.</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Encrypted Backup</span>
+    <h2>Future protected cloud copy</h2>
+    <p>Reserved for encrypted backups once key management and object storage are production-ready.</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Desktop assistant</span>
+    <h2>Context export ready</h2>
+    <p>Interview Assistant can request account license state and local Vault mode before using desktop-side resume and job context.</p>
+  </article>
+</section>
+{% endblock %}

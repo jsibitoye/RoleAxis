@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Devices | RoleAxis{% endblock %}
+{% block page_eyebrow %}Account Security{% endblock %}
+{% block page_title %}Desktop Devices{% endblock %}
+{% block content %}
+<section class="metric-grid">
+  <article class="metric-card">
+    <span>Plan</span>
+    <strong>{{ plan.name }}</strong>
+  </article>
+  <article class="metric-card accent">
+    <span>Active devices</span>
+    <strong>{{ device_count }}/{{ plan.max_devices }}</strong>
+  </article>
+  <article class="metric-card">
+    <span>Active sessions</span>
+    <strong>{{ active_session_count }}/{{ plan.max_active_sessions }}</strong>
+  </article>
+  <article class="metric-card">
+    <span>Subscription</span>
+    <strong>{{ subscription.status }}</strong>
+  </article>
+</section>
+
+<section class="section-header">
+  <div>
+    <span class="eyebrow">Device registry</span>
+    <h2>Registered local workstations</h2>
+  </div>
+  <a class="button secondary" href="/downloads">Downloads</a>
+</section>
+
+{% if devices %}
+<section class="table-shell">
+  <table>
+    <thead>
+      <tr>
+        <th>Device</th>
+        <th>Fingerprint</th>
+        <th>Status</th>
+        <th>Last seen</th>
+        <th>Version</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for device in devices %}
+      <tr>
+        <td>
+          <strong>{{ device.device_name }}</strong>
+          <small>{{ device.platform or "Unknown platform" }}</small>
+        </td>
+        <td><code>{{ device.device_fingerprint }}</code></td>
+        <td>{{ device.status }}</td>
+        <td>{{ device.last_seen_at or "Not seen yet" }}</td>
+        <td>{{ device.app_version or "Unknown" }}</td>
+        <td>
+          {% if device.status != "Revoked" %}
+          <form method="post" action="/account/devices/{{ device.id }}/revoke">
+            <button class="button secondary danger" type="submit">Revoke</button>
+          </form>
+          {% else %}
+          <span class="pill muted-pill">Revoked</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<section class="empty-state">
+  <span class="eyebrow">No devices yet</span>
+  <h2>Sign in from the desktop app to register this workstation.</h2>
+  <p>Devices are scoped to your account and can be revoked here at any time.</p>
+</section>
+{% endif %}
+
+<section class="section-header">
+  <div>
+    <span class="eyebrow">Session audit</span>
+    <h2>Recent desktop sessions</h2>
+  </div>
+</section>
+
+{% if sessions %}
+<section class="table-shell">
+  <table>
+    <thead>
+      <tr>
+        <th>Session</th>
+        <th>Status</th>
+        <th>Started</th>
+        <th>Last heartbeat</th>
+        <th>Ended</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for session in sessions %}
+      <tr>
+        <td>#{{ session.id }} on {{ session.device.device_name }}</td>
+        <td>{{ session.status }}</td>
+        <td>{{ session.started_at }}</td>
+        <td>{{ session.last_heartbeat_at or "None" }}</td>
+        <td>{{ session.ended_at or "Active" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<section class="empty-state small">
+  <p>No desktop sessions have been created yet.</p>
+</section>
+{% endif %}
+{% endblock %}

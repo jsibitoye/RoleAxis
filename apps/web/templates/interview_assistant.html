@@ -5,102 +5,81 @@
 {% block content %}
 <section class="platform-hero">
   <div>
-    <span class="eyebrow">Web-native SaaS interview room</span>
-    <h2>Practice and answer live interviews from the browser</h2>
+    <span class="eyebrow">Desktop app required</span>
+    <h2>Interview Assistant runs locally on your workstation</h2>
     <p>
-      Create an interview room with resume context, job description, browser transcript capture,
-      and server-side answer coaching. The Windows desktop assistant remains available as a legacy
-      local build, but the SaaS workflow runs here.
+      The web SaaS handles your account, subscription, device registration, and license state.
+      Realtime audio capture, transcription, resume context, and interview guidance stay inside the local Windows desktop app.
     </p>
-  </div>
-</section>
-
-<section class="split-layout">
-  <article class="form-panel">
-    <span class="eyebrow">Start session</span>
-    <h2>New interview room</h2>
-    <form method="post" action="/career/interview-assistant/sessions" class="stacked-form">
-      <div class="form-grid">
-        <label>
-          Session title
-          <input name="title" placeholder="Example: Senior Product Manager interview">
-        </label>
-        <label>
-          Interview type
-          <select name="interview_type">
-            {% for interview_type in interview_types %}
-            <option value="{{ interview_type }}">{{ interview_type }}</option>
-            {% endfor %}
-          </select>
-        </label>
-      </div>
-      <div class="form-grid">
-        <label>
-          Target role
-          <input name="target_role" placeholder="Example: Senior Software Engineer">
-        </label>
-        <label>
-          Company
-          <input name="company_name" placeholder="Example: Microsoft">
-        </label>
-      </div>
-      <label>
-        Resume / candidate context
-        <textarea name="resume_context" rows="5" placeholder="Paste the strongest resume bullets, achievements, projects, skills, certifications, and metrics."></textarea>
-      </label>
-      <label>
-        Job description
-        <textarea name="job_description" rows="5" placeholder="Paste the job description or interview brief."></textarea>
-      </label>
-      <button class="button primary" type="submit">Open Interview Room</button>
-    </form>
-  </article>
-
-  <div>
-    <article class="setting-panel">
-      <span class="eyebrow">SaaS readiness</span>
-      <h2>{{ "AI enabled" if api_enabled else "Local fallback active" }}</h2>
-      <p>
-        Answers are generated server-side. When `OPENAI_API_KEY` is configured, RoleAxis uses
-        the configured model. Without it, the assistant provides structured local coaching.
-      </p>
-    </article>
-    <article class="setting-panel">
-      <span class="eyebrow">Legacy desktop build</span>
-      <h2>{{ "Available" if status.project_exists else "Not found" }}</h2>
-      <p>The original Windows project remains in `services/career/interview-assistant/` for local use and reference.</p>
-    </article>
-  </div>
-</section>
-
-<section class="section-header">
-  <div>
-    <span class="eyebrow">Recent rooms</span>
-    <h2>Your interview sessions</h2>
-  </div>
-</section>
-
-{% if sessions %}
-<div class="case-grid">
-  {% for session in sessions %}
-  <article class="case-card">
-    <div class="card-topline">
-      <span class="pill">{{ session.interview_type }}</span>
-      <span>{{ session.status }}</span>
+    <div class="button-row">
+      <a class="button primary" href="/downloads">Download App</a>
+      <a class="button secondary" href="roleaxis://interview-assistant">Launch App</a>
+      <a class="button secondary" href="/career/interview-assistant/context.json">Export Context JSON</a>
     </div>
-    <h3><a href="/career/interview-assistant/sessions/{{ session.id }}">{{ session.title }}</a></h3>
-    <p>{{ session.target_role or "Target role not set" }}{% if session.company_name %} at {{ session.company_name }}{% endif %}</p>
-    <div class="card-actions">
-      <a href="/career/interview-assistant/sessions/{{ session.id }}">Open room</a>
-    </div>
+  </div>
+</section>
+
+<section class="metric-grid">
+  <article class="metric-card">
+    <span>Plan</span>
+    <strong>{{ plan.name }}</strong>
   </article>
-  {% endfor %}
-</div>
-{% else %}
-<div class="empty-state">
-  <span class="eyebrow">No interview rooms yet</span>
-  <h2>Create your first web session</h2>
-  <p>Paste your context once, then use the browser room during live practice or interview prep.</p>
-</div>
-{% endif %}
+  <article class="metric-card accent">
+    <span>Devices</span>
+    <strong>{{ device_count }}/{{ plan.max_devices }}</strong>
+  </article>
+  <article class="metric-card">
+    <span>Sessions</span>
+    <strong>{{ active_session_count }}/{{ plan.max_active_sessions }}</strong>
+  </article>
+  <article class="metric-card">
+    <span>Subscription</span>
+    <strong>{{ subscription.status }}</strong>
+  </article>
+</section>
+
+<section class="settings-grid">
+  <article class="setting-panel">
+    <span class="eyebrow">Desktop license flow</span>
+    <h2>Cloud login, local execution</h2>
+    <p>The desktop app signs in through `/api/desktop/login`, stores only the returned local token, heartbeats to the SaaS, and stops when a device or subscription is revoked.</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Vault context</span>
+    <h2>{{ current_user.vault_storage_mode }}</h2>
+    <p>Interview context is exported as JSON for the local app. Large Vault documents are not uploaded to RoleAxis Cloud by default.</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Source</span>
+    <h2>{{ "Ready" if status.project_exists else "Missing" }}</h2>
+    <p><strong>Project:</strong> {{ status.project_file }}</p>
+    <p><strong>Source present:</strong> {{ "Yes" if status.source_exists else "No" }}</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Configuration</span>
+    <h2>{{ "Safe example included" if status.config_example_exists else "Example missing" }}</h2>
+    <p>Use `OPENAI_API_KEY` or create a local ignored `config.json` beside the EXE.</p>
+    <p><strong>Example:</strong> {{ status.config_example }}</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Build</span>
+    <h2>{{ "Release build detected" if status.release_build_exists else "Build from source" }}</h2>
+    <p><strong>Command:</strong> dotnet build services\career\interview-assistant\RoleAxis.InterviewAssistant.csproj --configuration Release</p>
+  </article>
+  <article class="setting-panel">
+    <span class="eyebrow">Installer</span>
+    <h2>{{ "Installer artifact found" if status.installer_exists else "Installer not committed" }}</h2>
+    <p>Installer output is intentionally ignored so large binaries are not committed.</p>
+  </article>
+</section>
+
+<section class="empty-state">
+  <span class="eyebrow">Desktop feature entitlement</span>
+  <h2>Unlocked features for {{ plan.name }}</h2>
+  <ul class="roadmap-list">
+    {% for feature in features %}
+    <li>{{ feature }}</li>
+    {% endfor %}
+  </ul>
+</section>
 {% endblock %}

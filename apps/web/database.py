@@ -33,6 +33,12 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_schema_compatibility()
 
+    from apps.web.services.desktop import ensure_subscription_plans, seed_local_test_subscriptions
+
+    with SessionLocal() as db:
+        ensure_subscription_plans(db)
+        seed_local_test_subscriptions(db)
+
 
 def ensure_schema_compatibility() -> None:
     """Additive SQLite migrations for local MVP databases created by earlier builds."""
@@ -53,6 +59,10 @@ def ensure_schema_compatibility() -> None:
             "password_hash": "ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''",
             "role": "ALTER TABLE users ADD COLUMN role VARCHAR(80) NOT NULL DEFAULT 'Owner'",
             "is_active": "ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1",
+            "vault_storage_mode": (
+                "ALTER TABLE users ADD COLUMN vault_storage_mode "
+                "VARCHAR(80) NOT NULL DEFAULT 'Local Only'"
+            ),
             "last_login_at": "ALTER TABLE users ADD COLUMN last_login_at DATETIME",
         }
 

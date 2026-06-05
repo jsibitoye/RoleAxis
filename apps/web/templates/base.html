@@ -24,6 +24,9 @@
             <a href="/evidence" class="{{ 'active' if workspace == 'evidence' else '' }}">Evidence</a>
             <a href="/career" class="{{ 'active' if workspace == 'career' else '' }}">Career</a>
             <a href="/vault" class="{{ 'active' if workspace == 'vault' else '' }}">Vault</a>
+            <a href="/downloads" class="{{ 'active' if active == 'downloads' else '' }}">Downloads</a>
+            <a href="/account/devices" class="{{ 'active' if active == 'devices' else '' }}">Devices</a>
+            <a href="/subscription" class="{{ 'active' if active == 'subscription' else '' }}">Subscription</a>
             <a href="/settings" class="{{ 'active' if active == 'settings' else '' }}">Settings</a>
           </nav>
           {% if current_user is defined and current_user %}
